@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="cl."
+         name="Ghost View"
+         point="org.eclipse.ui.views">
+      <view
+            category="cl.pleiad.ghosts"
+            class="cl.pleiad.ghosts.view.GhostView"
+            icon="img/ghost16.ico"
+            id="cl.pleiad.ghosts.view.GhostView"
+            name="Ghosts View"
+            restorable="true">
+      </view>
+   </extension>
+   <extension
+         id="cl.pleiad.ghosts.GhostMarker"
+         name="Ghost Marker"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+      <attribute
+            name="isJavaProblem">
+      </attribute>
+      <attribute
+            name="ghostSignature">
+      </attribute>
+   </extension>
+   <extension
+         id="cl.pleaid.ghosts.GContextMarker"
+         name="Ghosts Context Marker"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
+         id="cl.pleiad.ghosts.GJavaProblem"
+         name="Java Problem in Ghosts"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.jdt.core.problem">
+      </super>
+   </extension>
+   <extension
+         id="cl.pleiad.ghosts.StoredKind"
+         name="Stored Ghost Kind"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="true">
+      </persistent>
+      <attribute
+            name="ghost.StoredKind">
+      </attribute>
+      <attribute
+            name="ghost.Name">
+      </attribute>
+   </extension>
+   <extension
+         point="org.eclipse.ui.editors.annotationTypes">
+      <type
+            markerSeverity="0"
+            markerType="cl.pleiad.ghosts.GhostMarker"
+            name="cl.pleiad.ghosts.GhostMarkerType">
+      </type>
+   </extension>
+   <extension
+         point="org.eclipse.ui.editors.markerAnnotationSpecification">
+      <specification
+            annotationType="cl.pleiad.ghosts.GhostMarkerType"
+            colorPreferenceKey="gColor"
+            colorPreferenceValue="10,10,10"
+            contributesToHeader="true"
+            highlightPreferenceKey="gHighlight"
+            highlightPreferenceValue="false"
+            icon="img/ghost16_2.ico"
+            includeOnPreferencePage="true"
+            label="Ghost Marker"
+            overviewRulerPreferenceKey="gOverviewRuler"
+            overviewRulerPreferenceValue="true"
+            presentationLayer="3"
+            textPreferenceKey="gText"
+            textPreferenceValue="true"
+            textStylePreferenceKey="gTextStyle"
+            textStylePreferenceValue="NONE"
+            verticalRulerPreferenceKey="gVerticarRuler"
+            verticalRulerPreferenceValue="false">
+      </specification>
+   </extension>
+   <extension
+         point="org.eclipse.ui.ide.markerImageProviders">
+      <imageprovider
+            icon="img/ghost16_2.ico"
+            id="cl.pleiad.ghosts.ImageProviderGContext"
+            markertype="cl.pleaid.ghosts.GContextMarker">
+      </imageprovider>
+   </extension>
+   <extension
+         id="cl.pleiad.ghosts.decorators"
+         name="Ghost Decorators"
+         point="org.eclipse.ui.decorators">
+      <decorator
+            adaptable="true"
+            class="cl.pleiad.ghosts.decorators.GhostJavaElementDecorator"
+            id="cl.pleiad.ghosts.decorator.GhostJavaElementDecorator"
+            label="Ghost decorator for Java elements"
+            lightweight="true"
+            location="TOP_RIGHT"
+            objectClass="org.eclipse.jdt.core.IJavaElement"
+            state="true">
+      </decorator>
+   </extension>
+   <extension
+         id="edu.pleiad.ghosts.Perspectives"
+         name="Ghosts Perspectives"
+         point="org.eclipse.ui.perspectives">
+      <perspective
+            class="cl.pleiad.ghosts.perspectives.GhostPerspective"
+            fixed="false"
+            icon="img/busted16.ico"
+            id="cl.pleiad.ghosts.perspectives.GhostPerspective"
+            name="Ghosts">
+      </perspective>
+   </extension>
+
+</plugin>

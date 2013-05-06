@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Ghosts
+Bundle-SymbolicName: cl.pleiad.ghosts;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: cl.pleiad.ghosts.GhostsPlugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.jdt.ui;bundle-version="3.6.2",
+ org.eclipse.ui.editors;bundle-version="3.6.1",
+ org.eclipse.jface.text;bundle-version="3.6.1",
+ org.eclipse.jdt.core;bundle-version="3.6.2",
+ org.eclipse.core.resources;bundle-version="3.6.1",
+ org.eclipse.ui.ide,
+ org.junit
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.eclipse.ui,
+ org.eclipse.ui.texteditor
+Bundle-Vendor: Pleiad Lab.
