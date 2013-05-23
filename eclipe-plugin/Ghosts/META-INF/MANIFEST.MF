@@ -15,6 +15,7 @@ Require-Bundle: org.eclipse.ui,
  org.junit
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Import-Package: org.eclipse.ui,
+Import-Package: org.eclipse.jdt.launching,
+ org.eclipse.ui,
  org.eclipse.ui.texteditor
 Bundle-Vendor: Pleiad Lab.
