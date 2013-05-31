@@ -40,8 +40,7 @@ public class SGhostEngine {
 	protected SGhostEngine() {
 		projects = new Vector<GhostSet>();
 		listeners = new Vector<GhostListener>();
-		listeners.add(new GhostLoadListener());
-		listeners.add(new GhostDeleteListener());		
+		listeners.add(new GhostLoadListener());	
 		this.registerListeners();
 		loadGhostsFromOpenJavaProjects();
 	}
@@ -50,6 +49,16 @@ public class SGhostEngine {
 		for (GhostListener listener : listeners)
 			listener.registerListeners();
 	}
+
+	//TODO make it work
+	public void loadNewProject(IJavaProject project) {	
+		this.removeProject(project);		
+		ASTGhostVisitor visitor = new ASTGhostVisitor()
+								. setBlackList(GBlackList.from(project));
+		projects.add(new GhostSet()
+						.setProject(project)
+						.setGhosts(visitor.getGhosts()));
+	}	
 	
 	public void loadGhostsFrom(IJavaProject project) {	
 		this.removeProject(project);

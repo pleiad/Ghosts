@@ -57,7 +57,6 @@ public class GhostLoadListener extends GhostListener {
 	protected void registerListeners() {
 		JavaCore.addElementChangedListener(this, ElementChangedEvent.POST_RECONCILE);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(this,IResourceChangeEvent.POST_CHANGE);
-		//ResourcesPlugin.getWorkspace().addResourceChangeListener(this,IResourceChangeEvent.PRE_DELETE);
 	}
 	
 	@Override
@@ -66,7 +65,7 @@ public class GhostLoadListener extends GhostListener {
 		// TODO do not trace file removed or changed in the background!
 		IJavaElementDelta delta = event.getDelta();
 		//if(delta.getAffectedChildren().length > 0){
-			IJavaElement part=delta.getElement();
+			IJavaElement part = delta.getElement();
 			for (GhostSet set : SGhostEngine.get().getProjects()) 
 				if (set.getProject().getElementName()
 						.equals(part.getJavaProject().getElementName())) {
@@ -86,44 +85,13 @@ public class GhostLoadListener extends GhostListener {
 	@Override
 	public void resourceChanged(IResourceChangeEvent event) {
 		//TODO it catches them
-		IResourceDelta root = event.getDelta();		
-		if (root.getResource().getType() == IResource.ROOT) {
-			for (IResourceDelta projectDelta : root.getAffectedChildren(IResource.PROJECT))
-				if (projectDelta.getFlags() == IResourceDelta.OPEN) {
-					System.out.println("open!");
-					Job job = new LoadProjectJob((IProject) projectDelta.getResource());
-					job.setPriority(Job.INTERACTIVE);
-					job.schedule();	
-					this.notifyChangesToObservers(); //In the job will be a slightly faster
-				}
+		IResourceDelta root = event.getDelta();
+		ResourceGhostVisitor visitor = new ResourceGhostVisitor(this);
+		try {
+			root.accept(visitor);
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-	}   
-	
-	protected class LoadProjectJob extends Job {
-
-		private IProject project;
-
-		protected LoadProjectJob(IProject _pjt) {
-			super("Loading Project: " + _pjt.getName());
-			this.project = _pjt;
-		}
-
-		protected IStatus run(IProgressMonitor monitor) {
-			try {
-
-				if (project.isOpen()) {
-					if (project.isNatureEnabled(JavaCore.NATURE_ID))
-						// project.set
-						SGhostEngine.get().loadGhostsFrom(JavaCore.create(project));
-				} else
-					SGhostEngine.get().removeProject(JavaCore.create(project));
-			} catch (CoreException e) {
-				e.printStackTrace();
-			}
-
-			return Status.OK_STATUS;
-		}
-
 	}
-	
 }

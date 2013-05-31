@@ -57,7 +57,8 @@ public class GBlackList implements IResourceChangeListener{
 	 */	
 	protected GBlackList(IProject parent){
 		file = parent.getFile(FILENAME);
-		if(file != null && file.exists()) load();
+		if(file != null)
+			if (file.exists()) load();
 		create();
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(this);
 	}
@@ -70,6 +71,9 @@ public class GBlackList implements IResourceChangeListener{
 		BufferedReader in;
 		blacks.clear();
 		try {
+			//TODO find out why is this necessary
+			if (!file.exists())
+				return;
 			in = new BufferedReader(new InputStreamReader(file.getContents(true)));
 			String inputLine;
 	 

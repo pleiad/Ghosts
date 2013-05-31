@@ -121,7 +121,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			return null;
 		}
 		
-		public void run(){
+		public void run() {
 			IJavaProject project=null;
 			
 			/*if(ghostNode!=null) project=this.bust(ghostNode);

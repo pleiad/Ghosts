@@ -2,11 +2,14 @@ package cl.pleiad.ghosts.tests;
 
 import junit.framework.TestCase;
 
+import org.eclipse.core.internal.runtime.InternalPlatform;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IPackageFragment;
+import org.eclipse.jdt.core.JavaCore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,20 +18,18 @@ import cl.pleiad.ghosts.engine.SGhostEngine;
 
 public class EngineTest extends TestCase {
 	private GhostTestHelper project;
-	private SGhostEngine ghosts;
 	private IWorkspace workspace;
 	
     @Before
     public void setUp(){
     	project = GhostTestHelper.getInstance();
-    	ghosts = SGhostEngine.get();
     	workspace = ResourcesPlugin.getWorkspace();
     }
 	
 	@Test
 	public void testCreation() {
 		int projectCount = workspace.getRoot().getProjects().length;
-		int ghostsProjectCount = ghosts.getProjects().size();
+		int ghostsProjectCount = SGhostEngine.get().getProjects().size();
 		assertTrue(projectCount == 1);
 		assertTrue(projectCount == ghostsProjectCount);
 	}
@@ -45,7 +46,7 @@ public class EngineTest extends TestCase {
 			e.printStackTrace();
 		}
 		projectCount = workspace.getRoot().getProjects().length;
-		int ghostsProjectCount = ghosts.getProjects().size();
+		int ghostsProjectCount = SGhostEngine.get().getProjects().size();
 		assertTrue(projectCount == 0);
 		assertTrue(projectCount == ghostsProjectCount);
 	}
@@ -70,9 +71,11 @@ public class EngineTest extends TestCase {
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
-		assertTrue(ghosts.getProjects().isEmpty() == false);
-		String name = ghosts.getProjects().firstElement().getGhosts().firstElement().getName();
-		assertTrue(name.equals("Product"));
+		assertFalse(SGhostEngine.get().getProjects().isEmpty());
+		String projectName = SGhostEngine.get().getProjects().firstElement().toString();
+		assertTrue(projectName.equals("TestProject"));
+		assertFalse(SGhostEngine.get().getProjects().firstElement().getGhosts().isEmpty());
+		//assertTrue(name.equals("Product"));
 	}
 	
 	@After
@@ -83,7 +86,6 @@ public class EngineTest extends TestCase {
 			e.printStackTrace();
 		}
 		project = null;
-		ghosts = null;
 		workspace = null;
 		System.gc();
     }
