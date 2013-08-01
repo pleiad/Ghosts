@@ -57,6 +57,7 @@ import cl.pleiad.ghosts.markers.GhostMarker;
 import cl.pleiad.ghosts.writer.GhostBusterMember;
 import cl.pleiad.ghosts.writer.GhostBusterType;
 import cl.pleiad.ghosts.writer.NonGhostImporter;
+import cl.pleiad.ghosts.decorators.GhostJavaElementDecorator;
 
 
 public class GhostView extends ViewPart implements Observer,IDoubleClickListener{

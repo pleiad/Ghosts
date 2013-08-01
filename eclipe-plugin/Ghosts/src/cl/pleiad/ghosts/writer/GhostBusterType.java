@@ -22,15 +22,20 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.PrimitiveType;
+import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
+import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
+import cl.pleiad.ghosts.core.GClass;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.Ghost;
+import cl.pleiad.ghosts.dependencies.TypeRef;
 import cl.pleiad.ghosts.engine.SGhostEngine;
 
 
@@ -76,6 +81,7 @@ public class GhostBusterType extends AbstractGhostBuster {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	protected void createDeclaration() throws Exception {
 		cUnit=SGhostEngine.parse(pkg.createCompilationUnit(getCompilationUnitName(), "", false, null));
@@ -85,6 +91,14 @@ public class GhostBusterType extends AbstractGhostBuster {
 		ownerNode = ast.newTypeDeclaration();
 		ownerNode.setName(this.getGhostName());
 		ownerNode.setInterface(ghost.kind()==Ghost.INTERFACE);
+		if (ghost.kind() != Ghost.INTERFACE) {
+			GClass ghostC = ((GBehaviorType)ghost).asClass();
+			if (ghostC.getSuperCls() != null) {
+				TypeRef superC = ghostC.getSuperCls();
+				//System.out.println(superC.getName());
+				ownerNode.setSuperclassType(this.getTypeByName(superC.getName()));
+			}
+		}
 		ownerNode.modifiers().add(this.getPublicModifier());
 	}
 	
@@ -95,6 +109,32 @@ public class GhostBusterType extends AbstractGhostBuster {
 	public GhostBusterType setPkg(IPackageFragment pkg) {
 		this.pkg = pkg;
 		return this;
+	}
+	
+	private Type getTypeByName(String typeName) {
+		if (typeName.equals("boolean"))
+			return ast.newPrimitiveType(PrimitiveType.BOOLEAN);
+		else if(typeName.equals("byte"))
+			return ast.newPrimitiveType(PrimitiveType.BYTE);
+		else if(typeName.equals("char"))
+			return ast.newPrimitiveType(PrimitiveType.CHAR);
+		else if(typeName.equals("double"))
+			return ast.newPrimitiveType(PrimitiveType.DOUBLE);
+		else if(typeName.equals("float"))
+			return ast.newPrimitiveType(PrimitiveType.FLOAT);
+		else if(typeName.equals("int"))
+			return ast.newPrimitiveType(PrimitiveType.INT);
+		else if(typeName.equals("long"))
+			return ast.newPrimitiveType(PrimitiveType.LONG);
+		else if(typeName.equals("short"))
+			return ast.newPrimitiveType(PrimitiveType.SHORT);
+		else if(typeName.equals("void"))
+			return ast.newPrimitiveType(PrimitiveType.VOID);
+		else {
+			SimpleName tName = ast.newSimpleName(typeName);
+			Type t = ast.newSimpleType(tName);
+			return t;
+		}
 	}
 
 }

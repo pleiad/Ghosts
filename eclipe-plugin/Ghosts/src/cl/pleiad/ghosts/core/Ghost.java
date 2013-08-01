@@ -2,6 +2,8 @@
 
 import java.io.PrintStream;
 import java.util.Vector;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import cl.pleiad.ghosts.dependencies.ISourceRef;
 
@@ -33,7 +35,7 @@ public abstract class Ghost {
 	//, because it is unsynchronized
 	
 	protected Ghost() {
-		this.dependencies = new Vector<ISourceRef>(); //initial capacity?		
+		this.dependencies = new Vector<ISourceRef>(); //initial capacity?
 	}
 
 	public String getName() {

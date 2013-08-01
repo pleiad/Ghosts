@@ -1,5 +1,7 @@
 package cl.pleiad.ghosts.core;
 
+import org.eclipse.jdt.core.dom.AST;
+
 import cl.pleiad.ghosts.dependencies.TypeRef;
 
 public class GConstructor extends GMethod {
@@ -18,9 +20,7 @@ public class GConstructor extends GMethod {
 	
 	public void setOwnerType(TypeRef type) {
 		super.setOwnerType(type);
-		
 		this.name = type.getName();
-		
 		super.returnType = new TypeRef("Object", true); //ugly!!!
 	}
 	

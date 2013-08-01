@@ -54,9 +54,10 @@ public class GTreeNode {
 				return ((GMember) l).compareTo((GMember)r);	
 			}
 		});
-		for (Ghost ghost : ghostSet.getGhosts())
+		for (Ghost ghost : ghostSet.getGhosts()) {
 				if(ghost.isMember())	current.addChild(from((GMember)ghost));
 				else 					current.addChild(from((GBehaviorType)ghost));
+		}
 		return current;
 	}
 

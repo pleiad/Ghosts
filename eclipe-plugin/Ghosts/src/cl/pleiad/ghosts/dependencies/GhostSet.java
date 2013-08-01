@@ -6,6 +6,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.core.IJavaProject;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
+import cl.pleiad.ghosts.core.GExtendedClass;
 import cl.pleiad.ghosts.core.Ghost;
 
 
@@ -16,6 +17,7 @@ import cl.pleiad.ghosts.core.Ghost;
 public class GhostSet {
 	private IJavaProject project;
 	private Vector<Ghost> ghosts;
+	private Vector<GExtendedClass> eGhosts;
 	
 	/**
 	 * Getter function for the project of the GhostSet
@@ -40,8 +42,9 @@ public class GhostSet {
 	 * @param ghosts the actual set of Ghosts, as a Vector
 	 * @return the GhostSet
 	 */	
-	public GhostSet setGhosts(Vector<Ghost> ghosts) {
+	public GhostSet setGhosts(Vector<Ghost> ghosts, Vector<GExtendedClass> eghosts) {
 		this.ghosts = ghosts;
+		this.eGhosts = eghosts;
 		return this;
 	}
 	
@@ -52,6 +55,15 @@ public class GhostSet {
 	public Vector<Ghost> getGhosts() {
 		if(ghosts==null) ghosts=new Vector<Ghost>();
 		return ghosts;
+	}
+	
+	/**
+	 * Getter function for the ExtendedGhosts in the GhostSet
+	 * @return the set of ExtendedGhosts, as a Vector
+	 */	
+	public Vector<GExtendedClass> getEGhosts() {
+		if(eGhosts==null) eGhosts=new Vector<GExtendedClass>();
+		return eGhosts;
 	}
 	
 	/**

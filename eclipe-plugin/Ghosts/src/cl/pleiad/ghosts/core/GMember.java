@@ -98,7 +98,9 @@ public abstract class GMember extends Ghost implements Comparable<GMember>{
 	public boolean hasProblems() {
 		for (ISourceRef ref : this.getDependencies())
 			try {
-				if(ref.getGhostMarker().getType() == GhostMarker.GHOSTS_PROBLEM_ID)
+				//TODO check if this affects the view
+				if(ref.getGhostMarker() != null &&
+				   ref.getGhostMarker().getType() == GhostMarker.GHOSTS_PROBLEM_ID)
 					return true;
 			} catch (Exception e) {	e.printStackTrace();}
 		return false;

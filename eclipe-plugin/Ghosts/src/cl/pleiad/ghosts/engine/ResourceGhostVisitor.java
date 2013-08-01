@@ -24,15 +24,13 @@ public class ResourceGhostVisitor implements IResourceDeltaVisitor {
 	public boolean visit(IResourceDelta delta) throws CoreException {
         switch (delta.getKind()) {
 	        case IResourceDelta.ADDED :
-	        	if (delta.getResource().getType() == IResource.PROJECT) 
-	        		System.out.println("added: "+delta.getResource().getName());
 	        	/*
 	        	 * The project cannot be used right away, so the strategy here 
 	        	 * is to wait for the src folder to be initialized
 	        	 */
-	        	else if (delta.getResource().getType() == IResource.FOLDER &&
-	        			 delta.getResource().getName().equals("src")) {
-	        		System.out.println("added: src :D");
+	        	if (delta.getResource().getType() == IResource.FOLDER &&
+	        		delta.getResource().getName().equals("src")) {
+	        		//System.out.println("added: src :D");
 	        		Job job = new LoadProjectJob((IProject) delta.getResource().getProject());
 					job.setPriority(Job.INTERACTIVE);
 					job.schedule();
@@ -43,14 +41,14 @@ public class ResourceGhostVisitor implements IResourceDeltaVisitor {
 	        	if (delta.getResource().getType() == IResource.PROJECT) {
 	        		String projectName = delta.getResource().getName();
 	    			SGhostEngine.get().removeProjectByName(projectName);
-	    			System.out.println("removed: "+projectName);
+	    			//System.out.println("removed: "+projectName);
 	        	}       		
 	            break;	            
 	        case IResourceDelta.CHANGED :
 	        	if (delta.getResource().getType() == IResource.ROOT)
 	    			for (IResourceDelta projectDelta : delta.getAffectedChildren(IResource.PROJECT))
 	    				if (projectDelta.getFlags() == IResourceDelta.OPEN) {
-	    					System.out.println("open: "+projectDelta.getResource().getName());
+	    					//System.out.println("open: "+projectDelta.getResource().getName());
 	    					Job job = new LoadProjectJob((IProject) projectDelta.getResource());
 	    					job.setPriority(Job.INTERACTIVE);
 	    					job.schedule();

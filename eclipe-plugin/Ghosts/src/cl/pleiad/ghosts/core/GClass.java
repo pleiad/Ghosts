@@ -48,6 +48,12 @@ public class GClass extends GBehaviorType {
 		ghost.setMutable(true);
 		this.copyContentTo(ghost);
 		return ghost;
-	}	
+	}
+	
+	public GExtendedClass asExtendedClass() {
+		GExtendedClass ghost = new GExtendedClass(name);
+		this.copyContentTo(ghost);
+		return ghost;	
+	}
 	
 }

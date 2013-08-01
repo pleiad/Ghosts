@@ -57,7 +57,7 @@ public class SGhostEngine {
 								. setBlackList(GBlackList.from(project));
 		projects.add(new GhostSet()
 						.setProject(project)
-						.setGhosts(visitor.getGhosts()));
+						.setGhosts(visitor.getGhosts(), visitor.getEGhosts()));
 	}	
 	
 	public void loadGhostsFrom(IJavaProject project) {	
@@ -74,7 +74,7 @@ public class SGhostEngine {
 			
 		projects.add(new GhostSet()
 						.setProject(project)
-						.setGhosts(visitor.getGhosts()));
+						.setGhosts(visitor.getGhosts(), visitor.getEGhosts()));
 	}
 
 	protected void loadGhostsFrom(ICompilationUnit cUnit, ASTGhostVisitor visitor) {

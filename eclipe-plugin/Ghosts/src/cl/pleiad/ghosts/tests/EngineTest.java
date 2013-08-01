@@ -3,26 +3,31 @@ package cl.pleiad.ghosts.tests;
 import junit.framework.TestCase;
 
 import org.eclipse.core.internal.runtime.InternalPlatform;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IPackageFragment;
+import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.compiler.ReconcileContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import cl.pleiad.ghosts.dependencies.GhostSet;
 import cl.pleiad.ghosts.engine.SGhostEngine;
 
 public class EngineTest extends TestCase {
-	private GhostTestHelper project;
+	private TestProject project;
 	private IWorkspace workspace;
+	private TestProjectCompilationParticipant CP;
 	
     @Before
     public void setUp(){
-    	project = GhostTestHelper.getInstance();
+    	project = TestProject.getInstance();
     	workspace = ResourcesPlugin.getWorkspace();
     }
 	
@@ -58,11 +63,15 @@ public class EngineTest extends TestCase {
 	@Test
 	public void testBasicAssociation() {
 		try {
-			StringBuffer source = new StringBuffer();
-			source.append("class Factory {" + System.getProperty("line.separator"));
-			source.append("private Product a, b, c;" + System.getProperty("line.separator"));
-			source.append("}");
-			project.createJavaTypeAndPackage("stuff", "Factory.java", source.toString());
+			project.createJavaTypeAndPackage("stuff", "TestFactory.java", "");
+			IType jclass = project.addFieldToJavaType("stuff", "TestFactory", "private Asdf a;");	
+			String jmethod = "\tpublic void foo() {\n\t\tint b = a.getB();\n\t}\n";
+			project.addMethodToJavaType("stuff", "TestFactory", jmethod);
+			project.fullBuild();
+			//System.out.println(jclass.getField("a").getSource());
+			//System.out.println(jclass.getMethod("foo", null).getSource());
+			System.out.println(jclass.getSource());
+			System.out.println(project.getProblems());
 			/*
 			IJavaElement[] packages = project.getSourceFolder().getChildren();
 			String name = ((IPackageFragment) packages[1]).getChildren()[0].getElementName();
@@ -72,9 +81,10 @@ public class EngineTest extends TestCase {
 			e.printStackTrace();
 		}
 		assertFalse(SGhostEngine.get().getProjects().isEmpty());
-		String projectName = SGhostEngine.get().getProjects().firstElement().toString();
+		GhostSet projectGS = SGhostEngine.get().getProjects().firstElement();
+		String projectName = projectGS.toString();
 		assertTrue(projectName.equals("TestProject"));
-		assertFalse(SGhostEngine.get().getProjects().firstElement().getGhosts().isEmpty());
+		assertFalse(projectGS.getGhosts().isEmpty());
 		//assertTrue(name.equals("Product"));
 	}
 	
