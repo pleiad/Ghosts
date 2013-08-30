@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -23,6 +24,7 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
 import cl.pleiad.ghosts.blacklist.GBlackList;
 import cl.pleiad.ghosts.core.GBehaviorType;
@@ -84,6 +86,29 @@ public class ASTGhostVisitor extends ASTVisitor {
 		inferencer.setCompilationUnit(unit); //may be is not need with getRoot!!
 		return super.visit(unit);
 	}	
+
+	//simple name visitor
+	public void endVisit(SimpleName nameNode) {
+		super.endVisit(nameNode);
+		if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT) {
+			String name = "";
+			if(nameNode.resolveTypeBinding() != null) {
+				name = nameNode.resolveTypeBinding().getName();
+				if (isNotGhost(name))		
+					return;
+			}
+			//creating field to compare
+			//TODO check this later
+			GField field = new GField(nameNode.getIdentifier(), false);
+			field.setReturnType(inferencer.inferTypeOf(nameNode, 0));
+			field.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
+			field.getDependencies().add(inferencer.getSourceRef(nameNode,field));
+			//check ifExist
+			inferencer.checkErrors(field);
+			field = (GField) inferencer.checkAndUnify(field, Ghost.FIELD);
+			inferencer.checkAndMutate(field);
+		}
+	}	
 	
 	// all types that I want, are here, but not sure if I need only this!!
 	public void endVisit(SimpleType typeNode) {
@@ -98,7 +123,10 @@ public class ASTGhostVisitor extends ASTVisitor {
 		if (typeNode.getSuperclassType() != null) {
 			String superName = typeNode.getSuperclassType().toString();
 			GBehaviorType superGhost = inferencer.getGhostType(superName);
-			if (superGhost != null) {
+			//filtering real classes
+			if (!typeNode.getSuperclassType().resolveBinding().isRecovered())
+				return;
+			else if (superGhost != null) {
 				GExtendedClass superGClass = (GExtendedClass) inferencer.mutate2(superGhost);
 				superGClass.addExtender(inferencer.getCurrentFileName());
 			}
@@ -250,14 +278,14 @@ public class ASTGhostVisitor extends ASTVisitor {
 		//TODO need a check!!!
 		GMethod mth = new GMethod(mthNode.getName().getIdentifier(), false);
 		if(mthNode.getExpression() == null) {
-			//TODO not yet supported foo() without expression!!
-			System.err.println(mthNode+" wo left-expr Not supported yet!");
-			return;
+			mth.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
 		}
-		mth.setOwnerType(inferencer.inferTypeOf(mthNode.getExpression(), 0));
-		//not a ghost
-		if(mth.getOwnerType().isNonLocal()) 
-			return;
+		else {
+			mth.setOwnerType(inferencer.inferTypeOf(mthNode.getExpression(), 0));
+			//not a ghost
+			if(mth.getOwnerType().isNonLocal()) 
+				return;
+		}
 		mth.setReturnType(inferencer.inferTypeOf(mthNode, 0));
 		for (Object _arg : mthNode.arguments()) {
 			Expression arg = (Expression) _arg;
@@ -294,9 +322,11 @@ public class ASTGhostVisitor extends ASTVisitor {
 	//field access creation visitor (this.a , mth().a and maybe a.a)
 	public void endVisit(FieldAccess fieldNode) {
 		super.endVisit(fieldNode);
-		if(fieldNode.resolveFieldBinding() != null)/* &&
-			!fieldNode.resolveFieldBinding().getType().isRecovered())*/
+		if(fieldNode.resolveFieldBinding() != null) {
+			String name = fieldNode.resolveFieldBinding().getType().getName();
+			if (isNotGhost(name))		
 				return;
+		}
 		//creating field to compare
 		//TODO check this later
 		GField field = new GField(fieldNode.getName().getIdentifier(), false);
@@ -348,5 +378,17 @@ public class ASTGhostVisitor extends ASTVisitor {
 			ghost.getDependencies().add(inferencer.getSourceRef(typeNode,ghost));
 
 		}
+	}
+	
+	/**
+	 * Helper function that finds if a certain
+	 * name corresponds to a Ghost.
+	 */	
+	private boolean isNotGhost(String name) {
+		int count = 0;
+		for (Ghost ghost: inferencer.getGhosts())
+			if (ghost.getName().equals(name))
+				count++;
+		return count == 0;
 	}
 }

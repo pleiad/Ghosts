@@ -46,9 +46,17 @@ public class TypeRef {
 	public String toString(){
 		return /*"["+(concrete?"":"?")+*/name/*+"]"*/;}
 	
-	public boolean equals(TypeRef ref){
-		return name.equals(ref.getName()) &&
-				concrete == ref.isConcrete();
+	public boolean equals(TypeRef ref) {
+		if (ref.getName() == "Union" && this.getName() == "Union") {
+			return ((UnionTypeRef) this).equals((UnionTypeRef) ref);
+		}
+		else if (this.getName() == "Union")
+			return ((UnionTypeRef) this).equals(ref);
+		else if (ref.getName() == "Union")
+			return ((UnionTypeRef) ref).equals(this);
+		else
+			return name.equals(ref.getName()) &&
+					concrete == ref.isConcrete();
 	}
 
 	public Object getRef() {
@@ -60,7 +68,10 @@ public class TypeRef {
 		return this;
 	}
 	
-	public boolean isNonLocal(){
-		return isConcrete() && !((ITypeBinding) ref).isFromSource();
+	public boolean isNonLocal() {
+		if (ref != null)
+			return isConcrete() && !((ITypeBinding) ref).isFromSource();
+		else
+			return isConcrete();// basic returns
 	}
 }

@@ -2,28 +2,21 @@ package cl.pleiad.ghosts.view;
 
 import java.io.InputStream;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.ui.ISharedImages;
 import org.eclipse.jdt.ui.JavaUI;
-import org.eclipse.jface.viewers.DecorationContext;
 import org.eclipse.jface.viewers.DecorationOverlayIcon;
 import org.eclipse.jface.viewers.IDecoration;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.internal.decorators.DecorationBuilder;
-
 import cl.pleiad.ghosts.GhostsPlugin;
 import cl.pleiad.ghosts.core.GBehaviorType;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.Ghost;
-import cl.pleiad.ghosts.decorators.GhostJavaElementDecorator;
 import cl.pleiad.ghosts.dependencies.GhostSet;
-import cl.pleiad.ghosts.dependencies.ISourceRef;
-import cl.pleiad.ghosts.markers.GhostMarker;
 
 
 public class GViewLavelProvider extends LabelProvider {
@@ -70,7 +63,7 @@ public class GViewLavelProvider extends LabelProvider {
 
 	private Image ghostSetIcon(GhostSet value) {
 		Image base=PlatformUI.getWorkbench().getSharedImages()
-				.getImage(org.eclipse.ui.ISharedImages.IMG_OBJ_PROJECT);
+				.getImage(org.eclipse.ui.ide.IDE.SharedImages.IMG_OBJ_PROJECT);
 		if(value.hasProblems()) return decorateAsProblem(base);
 		return base;
 	}

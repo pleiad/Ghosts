@@ -44,7 +44,9 @@ public class GhostMarker{
 	public static boolean existGCxtMarkIn(int line, IResource file) throws CoreException{
 		for (IMarker mark : file.findMarkers(
 				GhostMarker.CONTEXT_ID, false, IResource.DEPTH_ONE)) {
-			if(((Integer)mark.getAttribute(IMarker.LINE_NUMBER)) == line) return true;
+			if(	line != -1 &&
+				mark != null &&
+				((Integer)mark.getAttribute(IMarker.LINE_NUMBER)) == line) return true;
 		}
 		return false;
 	}
@@ -55,7 +57,7 @@ public class GhostMarker{
 			file.deleteMarkers(GHOSTS_PROBLEM_ID, false, IResource.DEPTH_ONE);
 	}
 
-	public static void createJavaProblemMarkersFrom(GMember ghost) {
+	public static void createIncompatibleDefMarkerFrom(GMember ghost) {
 
 		for (ISourceRef _ref : ghost.getDependencies()) {
 			MarkerSourceRef ref= (MarkerSourceRef) _ref;
@@ -75,6 +77,48 @@ public class GhostMarker{
 				} catch (CoreException e) { e.printStackTrace(); }
 		}
 	}
+	
+	public static void createUndefinedTypeMarkerFrom(GMember ghost) {
+
+		for (ISourceRef _ref : ghost.getDependencies()) {
+			MarkerSourceRef ref= (MarkerSourceRef) _ref;
+			IFile file=ref.getFile();
+			IMarker ex_ghost= ((MarkerSourceRef) _ref).getGhostMarker();
+			if(ex_ghost.exists())
+				try {
+					IMarker problem=file.createMarker(GHOSTS_PROBLEM_ID);
+					
+					problem.setAttributes(ex_ghost.getAttributes());
+					problem.setAttribute(IMarker.TRANSIENT, true);
+					problem.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+					problem.setAttribute(IMarker.MESSAGE, "Undefined Variable");
+					ex_ghost.delete();
+					ref.setMarker(problem);
+				} catch (CoreException e) { e.printStackTrace(); }
+		}
+	}
+	
+	public static void createWrongTypeMarkerFrom(GMember ghost) {
+
+		for (ISourceRef _ref : ghost.getDependencies()) {
+			MarkerSourceRef ref = (MarkerSourceRef) _ref;
+			if (ref != null) {
+				IFile file = ref.getFile();
+				IMarker ex_ghost= ((MarkerSourceRef) _ref).getGhostMarker();
+				if(ex_ghost.exists())
+					try {
+						IMarker problem=file.createMarker(GHOSTS_PROBLEM_ID);
+						
+						problem.setAttributes(ex_ghost.getAttributes());
+						problem.setAttribute(IMarker.TRANSIENT, true);
+						problem.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+						problem.setAttribute(IMarker.MESSAGE, "Wrong Type");
+						ex_ghost.delete();
+						ref.setMarker(problem);
+					} catch (CoreException e) { e.printStackTrace(); }
+			}
+		}
+	}	
 
 	public static void createStoredKind(IJavaProject project, GBehaviorType ghost) throws CoreException{
 		IMarker marker=project.getResource().createMarker(GhostMarker.STORED_KIND_ID);

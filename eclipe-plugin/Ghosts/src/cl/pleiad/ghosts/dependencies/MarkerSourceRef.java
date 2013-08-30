@@ -35,7 +35,10 @@ public class MarkerSourceRef implements ISourceRef {
 
 	@Override
 	public int getLineNumber() {
-		try { return (Integer) ghostMarker.getAttribute(IMarker.LINE_NUMBER);} 
+		try {
+			if(ghostMarker.exists())
+				return (Integer) ghostMarker.getAttribute(IMarker.LINE_NUMBER);
+		} 
 		catch (CoreException e) { e.printStackTrace();}
 		return -1;
 	}

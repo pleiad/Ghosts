@@ -27,10 +27,13 @@ import cl.pleiad.ghosts.view.GhostView;
 public class SGhostEngine {
 
 	private static SGhostEngine uniqueInstance;
+	private static Object lock;
 	
 	public static SGhostEngine get() {
-		if(uniqueInstance == null) 
+		if(uniqueInstance == null) {
 			uniqueInstance = new SGhostEngine();
+			lock = new Object(); 
+		}
 		return uniqueInstance;
 	}
 	
@@ -139,7 +142,9 @@ public class SGhostEngine {
 	}
 	
 	public Vector<GhostSet> getProjects() {
-		return projects;
+		synchronized(lock) {
+			return projects;
+		}
 	}
 
 	private void loadGhostsFromOpenJavaProjects() {

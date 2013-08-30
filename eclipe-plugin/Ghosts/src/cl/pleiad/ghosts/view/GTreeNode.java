@@ -32,7 +32,7 @@ public class GTreeNode {
 							.setValue(projects);
 	
 		for (GhostSet ghostSet : projects)
-			root.addChild(from(ghostSet));
+			root.addChild(from(ghostSet));//TODO here
 		
 		
 		return root;
@@ -54,7 +54,7 @@ public class GTreeNode {
 				return ((GMember) l).compareTo((GMember)r);	
 			}
 		});
-		for (Ghost ghost : ghostSet.getGhosts()) {
+		for (Ghost ghost : ghostSet.getGhosts()) {//TODO here
 				if(ghost.isMember())	current.addChild(from((GMember)ghost));
 				else 					current.addChild(from((GBehaviorType)ghost));
 		}
@@ -75,10 +75,13 @@ public class GTreeNode {
 	}
 	
 	private static GTreeNode from(ISourceRef ref) {
-		return new GTreeNode()
-					.setKind(DEPENDENCY)
-					.setName(ref.toString())
-					.setValue(ref);
+		if (ref != null)
+			return new GTreeNode()
+						.setKind(DEPENDENCY)
+						.setName(ref.toString())
+						.setValue(ref);
+		else
+			return null;
 	}
 
 
@@ -89,7 +92,7 @@ public class GTreeNode {
 								.setValue(ghost);
 		
 		Collections.sort(ghost.getMembers());
-		for (GMember mem : ghost.getMembers())
+		for (GMember mem : ghost.getMembers()) //TODO here
 			current.addChild(from(mem));
 		
 		if(!GhostView.refsInMenu) 
@@ -157,9 +160,11 @@ public class GTreeNode {
 		return children;
 	}
 	
-	public GTreeNode addChild(GTreeNode child){
-		child.setParent(this);
-		children.add(child);
+	public GTreeNode addChild(GTreeNode child) {
+		if (child != null) {
+			child.setParent(this);
+			children.add(child);
+		}
 		return this;
 	}
 	

@@ -50,14 +50,14 @@ import static org.eclipse.jdt.core.search.SearchPattern.R_EXACT_MATCH;
  *
  */
 @SuppressWarnings("restriction")
-public class GhostTestHelper {
+public class TestProject {
 
     public static final String TEST_PROJECT_NAME = "TestProject";
     private final IProject project;
     private final IJavaProject javaProject;
     private IPackageFragmentRoot sourceFolder;	
 	
-	public GhostTestHelper(String name) throws CoreException {
+	public TestProject(String name) throws CoreException {
         IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
         project = root.getProject(name);
         project.create(null);
@@ -78,13 +78,13 @@ public class GhostTestHelper {
         javaProject.setOption(CompilerOptions.OPTION_TargetPlatform, "1.5");
     }
 	
-	public GhostTestHelper() throws CoreException {
+	public TestProject() throws CoreException {
 		this(TEST_PROJECT_NAME);
     }
 	
-	public static GhostTestHelper getInstance() {
+	public static TestProject getInstance() {
 		try {
-			return new GhostTestHelper();
+			return new TestProject();
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
@@ -112,10 +112,25 @@ public class GhostTestHelper {
             buf.append("package " + pack.getElementName() + ";" + System.getProperty("line.separator"));
         }
         buf.append(System.getProperty("line.separator"));
+        buf.append("public class "+cuName.substring(0,cuName.indexOf('.'))+" {");
+        buf.append(System.getProperty("line.separator"));
         buf.append(source);
+        buf.append("}");
         ICompilationUnit cu = pack.createCompilationUnit(cuName,
                 buf.toString(), false, null);
         return cu.getTypes()[0];
+    }
+    
+    public IType addFieldToJavaType(String packageName, String fileName, String source) throws JavaModelException {
+        IType jclass = javaProject.findType(packageName+"."+fileName);
+        jclass.createField(source, null, true, null);
+        return jclass;
+    }
+    
+    public IType addMethodToJavaType(String packageName, String fileName, String source) throws JavaModelException {
+        IType jclass = javaProject.findType(packageName+"."+fileName);
+        jclass.createMethod(source, null, true, null);
+        return jclass;
     }
 
     public IType createJavaTypeAndPackage(String packageName, String fileName,

@@ -1,5 +1,6 @@
 package cl.pleiad.ghosts.dependencies;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -16,13 +17,19 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.PostfixExpression;
+import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
+import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -30,27 +37,45 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
 import cl.pleiad.ghosts.core.GClass;
+import cl.pleiad.ghosts.core.GExtendedClass;
+import cl.pleiad.ghosts.core.GField;
 import cl.pleiad.ghosts.core.GInterface;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.GMethod;
 import cl.pleiad.ghosts.core.Ghost;
 import cl.pleiad.ghosts.markers.GhostMarker;
 
-public class TypeInferer {
+
+public class TypeInferencer {
 	
 	private CompilationUnit cUnit;
 	private Vector<Ghost> ghosts;
+	private Vector<GExtendedClass> extendedGhosts;
+	private Object lock;
 	
-	public TypeInferer(Vector<Ghost> ghosts) {
+	public TypeInferencer(Vector<Ghost> ghosts, Vector<GExtendedClass> eghosts) {
 		this.ghosts = ghosts;
+		this.extendedGhosts = eghosts;
+		this.lock = new Object();
 	}
 	
 	public Vector<Ghost> getGhosts() {
-		return this.ghosts;
+		synchronized(lock) {
+			return this.ghosts;
+		}
+	}
+	
+	public Vector<GExtendedClass> getEGhosts() {
+		return this.extendedGhosts;
 	}
 	
 	public void setCompilationUnit(CompilationUnit cUnit) {
 		this.cUnit = cUnit;
+	}
+	
+	public String getCurrentFileName() {
+		String name = this.cUnit.getJavaElement().getElementName();
+		return name.substring(0, name.lastIndexOf('.'));
 	}
 
 	/**
@@ -72,7 +97,7 @@ public class TypeInferer {
 			ghost = new GInterface(qName);
 			if(kind == Ghost.CLASS) 
 				ghost = new GClass(qName);
-			ghost.setMutable(true); //at begining it is mutable
+			ghost.setMutable(true); //at beginning it is mutable
 		} else {
 			if (!this.isMutableClass(typeNode)) {
 				ghost = new GClass(qName);
@@ -100,11 +125,15 @@ public class TypeInferer {
 		for(Ghost ghost : ghosts) {				
 			if(ghost.isMember()) {
 				GMember aux = this.checkAndUnifyHelper((GMember)ghost, member, kind);
-				if(aux!=null) return aux;
+				if(aux!=null) {
+					return aux;
+				}
 			} else
 				for(GMember gmember : ((GBehaviorType)ghost).getMembers()) {
 					GMember aux=this.checkAndUnifyHelper(gmember, member, kind);
-					if(aux!=null) return aux;
+					if(aux!=null){
+						return aux;
+					}
 				}					
 		}//if there are not similars!
 		
@@ -126,10 +155,10 @@ public class TypeInferer {
 	 */
 	private GMember checkAndUnifyHelper(GMember ghost, GMember member, int kind) {
 		int similarity = ghost.similarTo(member);
-		if(similarity == Ghost.EQUALS) return (ghost).absorb(member);
-		
+		if(similarity == Ghost.EQUALS){
+			return (ghost).absorb(member);
+		}
 		if( Ghost.NAME_KIND <= similarity && similarity < Ghost.OVERLOADED) {
-			
 			if(ghost.getReturnType().getName().equals("void"))
 				if( ((GMethod)ghost).similarParamTypesTo((GMethod)member) ) {
 					ghost.setReturnType(member.getReturnType());
@@ -141,8 +170,8 @@ public class TypeInferer {
 					return ghost.absorb(member);
 			
 			//System.out.println(ghost+" |similar| "+member);
-			GhostMarker.createJavaProblemMarkersFrom(ghost);
-			GhostMarker.createJavaProblemMarkersFrom(member);
+			GhostMarker.createIncompatibleDefMarkerFrom(ghost);
+			GhostMarker.createIncompatibleDefMarkerFrom(member);
 		
 		}
 		
@@ -160,15 +189,48 @@ public class TypeInferer {
 			GBehaviorType ghost = (GBehaviorType) owner.getRef();
 			if(ghost.kind() == Ghost.INTERFACE) {
 				if(ghost.isMutable()) {
-					GBehaviorType newGhost = ghost.asClass();
-					ghosts.remove(ghost);
-					ghosts.add(newGhost);
+					GBehaviorType newGhost = mutate(ghost);
 					owner.setRef(newGhost);
 				} else {
-					GhostMarker.createJavaProblemMarkersFrom(member); 
+					GhostMarker.createIncompatibleDefMarkerFrom(member); 
 				}	
 			}				
 		} 	
+	}
+
+	public void checkErrors(GField field) {
+		if (field.getReturnType().getName().equals("Undefined")) 
+			GhostMarker.createUndefinedTypeMarkerFrom(field);
+		else if (field.getReturnType().getName().equals("Wrong Typing")) 
+			GhostMarker.createWrongTypeMarkerFrom(field);
+	}
+	
+	public GBehaviorType mutate(GBehaviorType ghost) {
+		GBehaviorType newGhost = ghost.asClass();
+		ghosts.remove(ghost);
+		ghosts.add(newGhost);
+		return newGhost;
+	}
+	
+	public GBehaviorType mutate2(GBehaviorType ghost) {
+		GExtendedClass newGhost = ghost.asClass().asExtendedClass();
+		extendedGhosts.remove(ghost);
+		extendedGhosts.add(newGhost);
+		return newGhost;
+	}
+	
+	public GExtendedClass getSuperGhost() {
+		String name = this.getCurrentFileName();
+		for (GExtendedClass ghost : extendedGhosts) {
+			if (ghost.getExtenders() != null) {
+				for (String gname : ghost.getExtenders()) {
+					if(name.equals(gname)) {
+						return ghost;
+					}
+				}
+			}
+		}
+		return null;
 	}
 	
 	/**
@@ -177,11 +239,11 @@ public class TypeInferer {
 	 * @param node the expression to be resolved
 	 * @return the best inferred type
 	 */
-	public TypeRef inferTypeOf(Expression node) {
+	public TypeRef inferTypeOf(Expression node, int deep) {
 		//basic JDT inference
-		ITypeBinding type = node.resolveTypeBinding();
-		if(type!=null)
-			return this.getTypeRefFrom(type);
+		TypeRef typeRef = getExistingType(node, deep);
+		if(typeRef != null) 
+			return typeRef;
 		switch (node.getNodeType()) {
 		// N;
 		case ASTNode.SIMPLE_NAME: return inferTypeOfVar((SimpleName) node);
@@ -190,11 +252,104 @@ public class TypeInferer {
 		// N.x	
 		case ASTNode.FIELD_ACCESS:
 		// N.x;
-		case ASTNode.QUALIFIED_NAME: return inferContextTypeOf(node);
+		case ASTNode.SUPER_METHOD_INVOCATION:
+		// super.x;
+		case ASTNode.SUPER_FIELD_ACCESS:
+		// super.x;
+		case ASTNode.QUALIFIED_NAME: return inferContextTypeOf(node, deep);
 		}
-		
 		// everything failed, return Object
+		//System.out.println(node.getNodeType());
 		return this.getRootType();
+	}
+
+	/**
+	 * Inference function, to obtain the more accurate
+	 * type for a certain GMember in a expression, 
+	 * considering existing declarations.
+	 * @param node the expression to be resolved
+	 * @param name the name of the looked member
+	 * @return the best inferred type
+	 */
+	public TypeRef inferCurrentTypeOf(Expression node, String name) {
+		TypeRef result = null;
+		Expression ctxNode = null;
+		switch (node.getNodeType()) {
+			case ASTNode.FIELD_ACCESS:
+				ctxNode = ((FieldAccess) node).getExpression();
+				break;
+			case ASTNode.METHOD_INVOCATION:
+				ctxNode = ((MethodInvocation) node).getExpression();
+				break;			
+		}
+		if (ctxNode != null)
+			switch (ctxNode.getNodeType()) {
+				case ASTNode.THIS_EXPRESSION:
+					result = this.getMemberType(this.getCurrentFileName(), name);
+					break;
+			}
+		if (result != null)
+			return result;
+		else
+			return this.getRootType();
+	}
+	
+	/**
+	 * Helper functions that verifies if the current node has
+	 * an existing type and if this type is correctly matched 
+	 * with its declaration type, in the current context.
+	 * @param node the node under verification
+	 * @param deep recursion deep, to avoid overflow
+	 * @return the correct typing, a marker for bad typing or null
+	 */
+	private TypeRef getExistingType(Expression node, int deep) {
+		ITypeBinding type = node.resolveTypeBinding();
+		TypeRef result = null;
+		TypeRef otherSide = null; //for assignments
+		if(type != null) {
+			result = this.getTypeRefFrom(type);
+			if (node.getNodeType() == ASTNode.SIMPLE_NAME &&
+				node.getParent().getNodeType() == ASTNode.ASSIGNMENT && deep == 0) {
+				if (((Assignment)node.getParent()).getRightHandSide() == node) {
+					Expression left = ((Assignment)node.getParent()).getLeftHandSide();
+					otherSide = inferTypeOf(left, deep + 1);
+				}
+				else if (((Assignment)node.getParent()).getLeftHandSide() == node) {
+					Expression right = ((Assignment)node.getParent()).getRightHandSide();
+					otherSide = inferTypeOf(right, deep + 1);
+				}
+				if (otherSide != null &&
+					!otherSide.getName().equals("Wrong Typing") &&
+					!otherSide.getName().equals("Undefined")) {
+					if (result.getName().equals(otherSide.getName()))
+						return result;
+					if (result.getName().equals("Object") ||
+							result.getName().equals("java.lang.Object")	)
+						return result;
+					if (otherSide.getName().equals("Object") ||
+							otherSide.getName().equals("java.lang.Object")	)
+						return result;
+					ITypeBinding pivot = type;
+					while (pivot != null) {
+						if(pivot.getSuperclass() != null
+						   && pivot.getSuperclass().getQualifiedName().equals(otherSide.getName()))
+							return result;
+						pivot = pivot.getSuperclass();
+					}
+					if (otherSide.getRef().getClass().getName().equals("org.eclipse.jdt.core.dom.TypeBinding")) {
+						pivot = (ITypeBinding) otherSide.getRef();
+						while (pivot != null) {
+							if(pivot.getSuperclass() != null
+							   && pivot.getSuperclass().getQualifiedName().equals(result.getName()))
+								return result;
+							pivot = pivot.getSuperclass();
+						}						
+					}
+					return new TypeRef("Wrong Typing", true);
+				}
+			}
+		}
+		return result;
 	}
 	
 	/**
@@ -203,15 +358,29 @@ public class TypeInferer {
 	 * @param node the ASTNode to be resolved
 	 * @return the best inferred type
 	 */
-	private TypeRef inferContextTypeOf(ASTNode node) {
+	private TypeRef inferContextTypeOf(ASTNode node, int deep) {
+		ArrayList<String> intChar = new ArrayList<String>();
+		intChar.add("int");
+		intChar.add("char");
+		ArrayList<String> intCharString = new ArrayList<String>();
+		intCharString.add("int");
+		intCharString.add("char");
+		intCharString.add("String");
 		ASTNode ctxNode = node.getParent();
 		switch (ctxNode.getNodeType()) {
 		// int a = <node>;
 		case ASTNode.VARIABLE_DECLARATION_FRAGMENT: 
 			return inferTypeOfVar(((VariableDeclarationFragment)ctxNode).getName());
 		// method_invk(arg0, ..,<node>);
-		case ASTNode.METHOD_INVOCATION: 
-			return inferTypeOfArg(node,(MethodInvocation)ctxNode);
+		case ASTNode.FIELD_ACCESS:
+			return getCurrentTypeOf(node);
+				
+		case ASTNode.METHOD_INVOCATION:
+			TypeRef current = getCurrentTypeOf(node);
+			if (current != null)
+				return current;
+			else
+				return inferTypeOfArg(node,(MethodInvocation)ctxNode);
 		// return <node>;
 		case ASTNode.RETURN_STATEMENT: 
 			return inferReturnTypeOf(ctxNode);
@@ -228,9 +397,107 @@ public class TypeInferer {
 		// <node> = 1; or var = <node>;	
 		case ASTNode.ASSIGNMENT:	
 			return this.inferAssignmentGuest(node,(Assignment)ctxNode);
+		//<operation> <node>;
+		case ASTNode.PREFIX_EXPRESSION:
+			PrefixExpression preExpr = (PrefixExpression) ctxNode;
+			if(preExpr.getOperator() == PrefixExpression.Operator.NOT)
+				return new TypeRef("boolean", true);
+			else
+				return new UnionTypeRef(intChar, true);
+		//<node> <operation>;
+		case ASTNode.POSTFIX_EXPRESSION:
+			return new UnionTypeRef(intChar, true);
+		// ... <node> <operation> <node> ... ;
+		case ASTNode.INFIX_EXPRESSION:
+			InfixExpression expr = (InfixExpression) ctxNode;
+			if(expr.getOperator() == InfixExpression.Operator.CONDITIONAL_AND ||
+			   expr.getOperator() == InfixExpression.Operator.CONDITIONAL_OR ||
+			   expr.getOperator() == InfixExpression.Operator.AND ||
+			   expr.getOperator() == InfixExpression.Operator.OR ||
+			   expr.getOperator() == InfixExpression.Operator.XOR)
+				if (node.getNodeType() == ASTNode.INFIX_EXPRESSION)
+					return inferContextTypeOf(ctxNode, deep);
+				else
+					return new TypeRef("boolean", true);
+			else if(expr.getOperator() == InfixExpression.Operator.LESS ||
+					expr.getOperator() == InfixExpression.Operator.GREATER ||
+					expr.getOperator() == InfixExpression.Operator.LESS_EQUALS ||
+					expr.getOperator() == InfixExpression.Operator.GREATER_EQUALS ||
+					expr.getOperator() == InfixExpression.Operator.TIMES ||
+					expr.getOperator() == InfixExpression.Operator.DIVIDE ||
+					expr.getOperator() == InfixExpression.Operator.REMAINDER ||
+					expr.getOperator() == InfixExpression.Operator.MINUS ||
+					expr.getOperator() == InfixExpression.Operator.LEFT_SHIFT ||
+					expr.getOperator() == InfixExpression.Operator.RIGHT_SHIFT_SIGNED ||
+					expr.getOperator() == InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)
+					if (node.getNodeType() == ASTNode.INFIX_EXPRESSION)
+						return inferContextTypeOf(ctxNode, deep);
+					else
+						return new UnionTypeRef(intChar, true);
+			else if(expr.getOperator() == InfixExpression.Operator.PLUS)
+				if (node.getNodeType() == ASTNode.INFIX_EXPRESSION)
+					return inferContextTypeOf(ctxNode, deep);
+				else if(inferContextTypeOf(node.getParent(),0).equals(new TypeRef("String", true)))
+					return new TypeRef("String", true);
+				else if(inferContextTypeOf(node.getParent(),0).equals(new TypeRef("int", true)))
+					return new UnionTypeRef(intChar, true);
+				else if(inferContextTypeOf(node.getParent(),0).equals(new TypeRef("char", true)))
+					return new UnionTypeRef(intChar, true);
+				else
+					return new UnionTypeRef(intCharString, true);				
+			else//== !=
+				if (node == expr.getLeftOperand())//TODO not flawless :/
+					if (expr.getRightOperand().getNodeType() == ASTNode.INFIX_EXPRESSION) {
+						InfixExpression right = (InfixExpression) expr.getRightOperand();	
+						return inferContextTypeOf(right.getLeftOperand(), deep);
+					}
+					else if (deep > 0)
+						return this.getRootType();
+					else
+						return inferTypeOf(expr.getRightOperand(), deep + 1);	
+				else if (node == expr.getRightOperand())
+					if (expr.getLeftOperand().getNodeType() == ASTNode.INFIX_EXPRESSION) {
+						InfixExpression left = (InfixExpression) expr.getLeftOperand();	
+						return inferContextTypeOf(left.getLeftOperand(), deep);
+					}
+					else if (deep > 0)
+						return this.getRootType();
+					else
+						return inferTypeOf(expr.getLeftOperand(), deep + 1);
+				else
+					return inferContextTypeOf(ctxNode, deep);
 		}
 		// everything failed, return Object
+		//System.out.println(ctxNode.getNodeType());
 		return this.getRootType();
+	}
+	
+	/**
+	 * helper function to type inner members of
+	 * a chained call
+	 * @param node the field access or method invocation
+	 * @return the current type or null
+	 */
+	private TypeRef getCurrentTypeOf(ASTNode node) {
+		String name = "";
+		switch (node.getNodeType()) {
+			case ASTNode.FIELD_ACCESS:
+				name = ((FieldAccess) node).getName().getIdentifier();
+				break;
+			case ASTNode.METHOD_INVOCATION:
+				name = ((MethodInvocation) node).getName().getIdentifier();
+				break;
+			default:
+				return null;
+		}
+		TypeRef result = inferCurrentTypeOf((Expression) node, name);
+		//TODO find cases
+		/*if (result.getName().equals("java.lang.Object")) {
+			TypeRef noName = new TypeRef("noName",false).setRef(result.getRef());
+			return noName;
+		}
+		else*/	
+			return result;
 	}
 	
 	/**
@@ -303,7 +570,8 @@ public class TypeInferer {
 		ITypeBinding type = this.getDeclaringTypeOfVar(node);
 		if(type != null) 
 			return this.getTypeRefFrom(type);
-
+		if (node.getParent().getNodeType() == ASTNode.ASSIGNMENT)
+			return new TypeRef("Undefined", true);
 		return this.getRootType();
 	}
 		
@@ -518,9 +786,10 @@ public class TypeInferer {
 	 * @return type the corresponding type
 	 */
 	private TypeRef getTypeRefFrom(ITypeBinding type) {
-		TypeRef typeRef = new TypeRef(type.getQualifiedName(), !type.isRecovered()).setRef(type);
+		String typeName = type.getQualifiedName();
+		TypeRef typeRef = new TypeRef(typeName, !type.isRecovered()).setRef(type);
 		if(!typeRef.isConcrete())
-			typeRef.setRef(this.getGhostType(type.getQualifiedName()));
+			typeRef.setRef(this.getGhostType(typeName));
 		return typeRef;
 	}
 	
@@ -531,8 +800,6 @@ public class TypeInferer {
 	private TypeRef getRootType() {
 		return new TypeRef("java.lang.Object", true);
 	}
-	
-	
 
 
 	/**
@@ -554,12 +821,14 @@ public class TypeInferer {
 					startChar + node.getLength(),
 					ghost.toString());
 			ASTNode parent = node;
-			do {
+			//TODO Change here
+			while(parent.getNodeType() != ASTNode.TYPE_DECLARATION) {
 				parent = this.getDeclaringMethodOrType(parent);
 				int line = this.cUnit.getLineNumber(parent.getStartPosition());
-				if(!GhostMarker.existGCxtMarkIn(line, file))
+				if(file != null &&
+					!GhostMarker.existGCxtMarkIn(line, file))
 					GhostMarker.createGCxtMark(file, line);
-			} while(parent.getNodeType() != ASTNode.TYPE_DECLARATION);
+			}
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
@@ -578,7 +847,7 @@ public class TypeInferer {
 			case ASTNode.TYPE_DECLARATION:
 			case ASTNode.METHOD_DECLARATION: return parent;
 		}
-		return this.getDeclaringVarNodeParent(parent); //will never happen!!
+		return this.getDeclaringVarNodeParent(node);
 	}
 	
 	/**
@@ -619,11 +888,31 @@ public class TypeInferer {
 	 * @param qName
 	 * @return the type (class or interface) or null
 	 */
-	private GBehaviorType getGhostType(String qName) {
+	public GBehaviorType getGhostType(String qName) {
 		for (Ghost ghost : ghosts) {
 			if(!ghost.isMember() && ghost.getName().equals(qName)) 
 				return (GBehaviorType) ghost;
 		}
 		return null;
 	}
+	
+	/**	
+	 * Helper function to obtain the type of a ghost
+	 * member.
+	 * @param cName the name of the owning context
+	 * @param mName the name of the member
+	 * @return the TypeRef or null
+	 */
+	public TypeRef getMemberType(String cName, String mName) {
+		for (Ghost ghost : ghosts) {
+			if(ghost.isMember() && 
+			   ghost.getName().equals(mName) &&
+			   ((GMember) ghost).getOwnerType().getName().equals(cName)) {
+				return ((GMember) ghost).getReturnType();
+			}
+		}
+		return null;
+	}
+
+
 }

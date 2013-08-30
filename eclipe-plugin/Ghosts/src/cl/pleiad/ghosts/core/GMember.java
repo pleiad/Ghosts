@@ -1,11 +1,9 @@
 package cl.pleiad.ghosts.core;
 
 import java.io.PrintStream;
-
-import org.eclipse.core.runtime.CoreException;
-
 import cl.pleiad.ghosts.dependencies.ISourceRef;
 import cl.pleiad.ghosts.dependencies.TypeRef;
+import cl.pleiad.ghosts.dependencies.UnionTypeRef;
 import cl.pleiad.ghosts.markers.GhostMarker;
 
 
@@ -65,8 +63,30 @@ public abstract class GMember extends Ghost implements Comparable<GMember>{
 	}
 
 	public GMember absorb(GMember member) {
-		this.getDependencies().addAll(member.getDependencies());			
-		return this;
+		if (member.getReturnType().getName() == "Union" &&
+			this.getReturnType().getName() == "Union") {
+			int thisSize = ((UnionTypeRef) this.getReturnType()).getNames().size();
+			int memberSize = ((UnionTypeRef) member.getReturnType()).getNames().size();
+			if (thisSize < memberSize) {
+				this.getDependencies().addAll(member.getDependencies());
+				return this;
+			}
+			else {
+				member.getDependencies().addAll(this.getDependencies());
+				this.setReturnType(member.getReturnType());
+				return this;
+			}
+				
+		}
+		else if (this.getReturnType().getName() == "Union") {
+			member.getDependencies().addAll(this.getDependencies());
+			this.setReturnType(member.getReturnType());
+			return this;
+		}
+		else {
+			this.getDependencies().addAll(member.getDependencies());
+			return this;
+		}
 	}
 	
 	
@@ -98,10 +118,9 @@ public abstract class GMember extends Ghost implements Comparable<GMember>{
 	public boolean hasProblems() {
 		for (ISourceRef ref : this.getDependencies())
 			try {
-				//TODO check if this affects the view
-				if(ref.getGhostMarker() != null &&
-				   ref.getGhostMarker().getType() == GhostMarker.GHOSTS_PROBLEM_ID)
-					return true;
+				if(ref != null && ref.getGhostMarker() != null && ref.getGhostMarker().exists())
+						if(ref.getGhostMarker().getType() == GhostMarker.GHOSTS_PROBLEM_ID)
+							return true;
 			} catch (Exception e) {	e.printStackTrace();}
 		return false;
 	}

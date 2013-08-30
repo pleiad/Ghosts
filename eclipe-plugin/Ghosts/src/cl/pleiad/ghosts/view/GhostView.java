@@ -60,6 +60,7 @@ import cl.pleiad.ghosts.writer.NonGhostImporter;
 import cl.pleiad.ghosts.decorators.GhostJavaElementDecorator;
 
 
+@SuppressWarnings("restriction")
 public class GhostView extends ViewPart implements Observer,IDoubleClickListener{
 	
 	
