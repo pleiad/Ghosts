@@ -5,7 +5,7 @@ Development of an Eclipse plugin that supports incremental programming with ghos
 
 See http://pleiad.cl/ghosts.
 
-The latest version of Ghost is available [here](https://github.com/pleiad/Ghosts/raw/master/plugins/cl.pleiad.ghosts_1.0.0.201308292215.jar).
+The latest version of Ghosts is available [here](https://github.com/pleiad/Ghosts/raw/master/plugins/cl.pleiad.ghosts_1.0.0.201308292215.jar).
 
 Ghosts is available as beta version for Eclipse. In order to try Ghosts, you will need the standard 
 Eclipse IDE for Java Developers version 3.7.1 or higher. We recommend:
