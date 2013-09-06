@@ -96,7 +96,8 @@ public class GhostSet {
 			Vector<ISourceRef> refs=ghost.getDependencies();
 			Vector<ISourceRef> toRemove=new Vector<ISourceRef>();
 			for (ISourceRef ref : refs)
-				if(ref.getFile().equals(file)) toRemove.add(ref);
+				if(	ref != null &&
+					ref.getFile().equals(file)) toRemove.add(ref);
 			
 			for (ISourceRef ref : toRemove) refs.remove(ref);
 			if(refs.size() == 0)	discarded.add(ghost);

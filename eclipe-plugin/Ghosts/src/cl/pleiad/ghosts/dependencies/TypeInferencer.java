@@ -23,11 +23,14 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.PrimitiveType;
+import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.SuperFieldAccess;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
@@ -155,7 +158,7 @@ public class TypeInferencer {
 	 */
 	private GMember checkAndUnifyHelper(GMember ghost, GMember member, int kind) {
 		int similarity = ghost.similarTo(member);
-		if(similarity == Ghost.EQUALS){
+		if(similarity == Ghost.EQUALS) {
 			return (ghost).absorb(member);
 		}
 		if( Ghost.NAME_KIND <= similarity && similarity < Ghost.OVERLOADED) {
@@ -168,6 +171,12 @@ public class TypeInferencer {
 			if(member.getReturnType().getName().equals("void"))
 				if( ((GMethod)ghost).similarParamTypesTo((GMethod)member) )
 					return ghost.absorb(member);
+			
+			if(ghost.getReturnType().getName().equals(""))
+				return member.absorb(ghost);
+			
+			if(member.getReturnType().getName().equals(""))
+				return ghost.absorb(member);
 			
 			//System.out.println(ghost+" |similar| "+member);
 			GhostMarker.createIncompatibleDefMarkerFrom(ghost);
@@ -280,18 +289,60 @@ public class TypeInferencer {
 				break;
 			case ASTNode.METHOD_INVOCATION:
 				ctxNode = ((MethodInvocation) node).getExpression();
-				break;			
+				break;
+			case ASTNode.QUALIFIED_NAME:
+				ctxNode = ((QualifiedName) node);
+				break;
+			case ASTNode.SUPER_FIELD_ACCESS:
+				ctxNode = ((SuperFieldAccess) node);
+				break;
+			case ASTNode.SUPER_METHOD_INVOCATION:
+				ctxNode = ((SuperMethodInvocation) node);
+				break;
 		}
 		if (ctxNode != null)
 			switch (ctxNode.getNodeType()) {
 				case ASTNode.THIS_EXPRESSION:
 					result = this.getMemberType(this.getCurrentFileName(), name);
 					break;
+				case ASTNode.QUALIFIED_NAME:
+					result = this.getMemberType(this.getCurrentFileName(), name);
+					break;
+				case ASTNode.SIMPLE_NAME:
+					result = this.getMemberType(this.getCurrentFileName(), name);
+					break;
+				case ASTNode.SUPER_FIELD_ACCESS:
+				result = getSuperMemberType(name);
+					break;
+				case ASTNode.SUPER_METHOD_INVOCATION:
+				result = getSuperMemberType(name);
+					break;					
 			}
 		if (result != null)
 			return result;
 		else
 			return this.getRootType();
+	}
+
+	/**
+	 * Helper Function that returns the superType
+	 * reference once the current contexts contains
+	 * the updated information. In every other case
+	 * it returns a dummy value that exists in the
+	 * meanwhile.
+	 * @param name the name of the super member
+	 * @return the super member type, or a dummy
+	 */
+	private TypeRef getSuperMemberType(String name) {
+		TypeRef result;
+		GExtendedClass sGhost = this.getSuperGhost();
+		if (sGhost != null && sGhost.getMembers().isEmpty())
+			result = new TypeRef("",false);//second try
+		else if (sGhost != null)
+			result = this.getMemberType(sGhost.getName(), name);
+		else
+			result = new TypeRef("",false);//first try
+		return result;
 	}
 	
 	/**
@@ -371,16 +422,19 @@ public class TypeInferencer {
 		// int a = <node>;
 		case ASTNode.VARIABLE_DECLARATION_FRAGMENT: 
 			return inferTypeOfVar(((VariableDeclarationFragment)ctxNode).getName());
-		// method_invk(arg0, ..,<node>);
+		//a.b
 		case ASTNode.FIELD_ACCESS:
-			return getCurrentTypeOf(node);
-				
+			return getCurrentTypeOf(node);	
+		// method_invk(arg0, ..,<node>);
 		case ASTNode.METHOD_INVOCATION:
 			TypeRef current = getCurrentTypeOf(node);
 			if (current != null)
 				return current;
 			else
 				return inferTypeOfArg(node,(MethodInvocation)ctxNode);
+		//a.b.c
+		case ASTNode.QUALIFIED_NAME:
+			return getCurrentTypeOf(node);	
 		// return <node>;
 		case ASTNode.RETURN_STATEMENT: 
 			return inferReturnTypeOf(ctxNode);
@@ -487,6 +541,15 @@ public class TypeInferencer {
 			case ASTNode.METHOD_INVOCATION:
 				name = ((MethodInvocation) node).getName().getIdentifier();
 				break;
+			case ASTNode.QUALIFIED_NAME:
+				name = ((QualifiedName) node).getName().getIdentifier();
+				break;
+			case ASTNode.SUPER_FIELD_ACCESS:
+				name = ((SuperFieldAccess) node).getName().getIdentifier();
+				break;
+			case ASTNode.SUPER_METHOD_INVOCATION:
+				name = ((SuperMethodInvocation) node).getName().getIdentifier();
+				break;				
 			default:
 				return null;
 		}

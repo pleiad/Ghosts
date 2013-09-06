@@ -283,6 +283,8 @@ public class ASTGhostVisitor extends ASTVisitor {
 		else {
 			mth.setOwnerType(inferencer.inferTypeOf(mthNode.getExpression(), 0));
 			//not a ghost
+			if (mth.getOwnerType().getName().equals(""))
+				return;
 			if(mth.getOwnerType().isNonLocal()) 
 				return;
 		}
@@ -333,6 +335,8 @@ public class ASTGhostVisitor extends ASTVisitor {
 		field.setReturnType(inferencer.inferTypeOf(fieldNode, 0));
 		field.setOwnerType(inferencer.inferTypeOf(fieldNode.getExpression(), 0));
 		//not a ghost
+		if (field.getOwnerType().getName().equals(""))
+			return;
 		if(field.getOwnerType().isNonLocal()) 
 			return;
 		field.getDependencies().add(inferencer.getSourceRef(fieldNode,field));
