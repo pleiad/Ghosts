@@ -23,4 +23,13 @@ public class GExtendedClass extends GClass {
 		return this.extenders;
 	}
 	
+	public GExtendedClass asExtendedClass() {
+		return this;	
+	}
+	
+	@Override
+	public boolean extended() {
+		return true;
+	}
+	
 }

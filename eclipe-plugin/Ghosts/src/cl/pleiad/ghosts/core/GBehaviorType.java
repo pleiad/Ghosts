@@ -2,18 +2,19 @@ package cl.pleiad.ghosts.core;
 
 import java.io.PrintStream;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public abstract class GBehaviorType extends Ghost {
-	protected Vector<GMember> members;
+	protected CopyOnWriteArrayList<GMember> members;
 	protected boolean mutable;
 	
-	public Vector<GMember> getMembers() {
+	public CopyOnWriteArrayList<GMember> getMembers() {
 		return members;
 	}
 
 	protected GBehaviorType() {
 		super();
-		members = new Vector<GMember>(); //initial capacity?
+		members = new CopyOnWriteArrayList<GMember>(); //initial capacity?
 	}
 	
 	/*public boolean equal(Object other){
@@ -48,12 +49,21 @@ public abstract class GBehaviorType extends Ghost {
 
 	public abstract GInterface asInterface();
 	
+	public abstract GExtendedClass asExtendedClass();
+	
+	public abstract boolean extended();
+	
 	protected void copyContentTo(GBehaviorType ghost) {
 		for (GMember member : this.getMembers()) {
 			member.getOwnerType().setRef(ghost);
 			ghost.getMembers().add(member);
 		}
 		ghost.getDependencies().addAll(this.getDependencies());
+		if (this.extended() && ghost.extended()) {
+			((GExtendedClass) ghost).getExtenders()
+			.addAll(((GExtendedClass) this).getExtenders());
+		}
+			
 	}
 
 	

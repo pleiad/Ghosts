@@ -3,6 +3,7 @@ package cl.pleiad.ghosts.engine;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -48,11 +49,11 @@ public class ASTGhostVisitor extends ASTVisitor {
 
 	public ASTGhostVisitor() {
 		super();
-		inferencer = new TypeInferencer(new Vector<Ghost>(), new Vector<GExtendedClass>());
+		inferencer = new TypeInferencer(new CopyOnWriteArrayList<Ghost>());
 	}
 	
-	public ASTGhostVisitor setGhosts(Vector<Ghost> initList, Vector<GExtendedClass> vector) {
-		inferencer = new TypeInferencer(initList, vector);
+	public ASTGhostVisitor setGhosts(CopyOnWriteArrayList<Ghost> initList) {
+		inferencer = new TypeInferencer(initList);
 		return this;
 	}	
 	
@@ -60,16 +61,8 @@ public class ASTGhostVisitor extends ASTVisitor {
 	 * Getter function for the Ghosts Vector
 	 * @return the ghost Vector
 	 */
-	public Vector<Ghost> getGhosts() {
+	public CopyOnWriteArrayList<Ghost> getGhosts() {
 		return inferencer.getGhosts();
-	}
-	
-	/**
-	 * Getter function for the GExtendedClass Vector
-	 * @return the ghost Vector
-	 */
-	public Vector<GExtendedClass> getEGhosts() {
-		return inferencer.getEGhosts();
 	}
 	
 	/**
@@ -117,7 +110,7 @@ public class ASTGhostVisitor extends ASTVisitor {
 	}
 	
 	//type declaration visitor
-	public void endVisit(TypeDeclaration typeNode) {
+	/*public void endVisit(TypeDeclaration typeNode) {
 		//for the purpose of finding "extends" statements
 		super.endVisit(typeNode);
 		if (typeNode.getSuperclassType() != null) {
@@ -134,10 +127,9 @@ public class ASTGhostVisitor extends ASTVisitor {
 				GExtendedClass superGClass = new GExtendedClass(superName);
 				superGClass.getDependencies().add(inferencer.getSourceRef(typeNode,superGClass));
 				inferencer.getGhosts().add(superGClass);
-				inferencer.getEGhosts().add(superGClass);
 			}
 		}
-	}
+	}*/
 	
 	//Catch clause visitor
 	public void endVisit(CatchClause catchNode) {
@@ -380,6 +372,11 @@ public class ASTGhostVisitor extends ASTVisitor {
 				return; // or QualifiedName
 			Ghost ghost = inferencer.getGhostConsidering(typeNode);//here
 			ghost.getDependencies().add(inferencer.getSourceRef(typeNode,ghost));
+			//extends ghost
+			if (typeNode.getParent().getNodeType() == ASTNode.TYPE_DECLARATION) {
+				GExtendedClass superGClass = (GExtendedClass) inferencer.mutate2((GBehaviorType)ghost);
+				superGClass.addExtender(inferencer.getCurrentFileName());
+			}
 
 		}
 	}

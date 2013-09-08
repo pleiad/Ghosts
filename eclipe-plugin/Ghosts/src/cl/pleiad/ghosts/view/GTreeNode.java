@@ -3,6 +3,7 @@ package cl.pleiad.ghosts.view;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.jdt.internal.corext.util.CollectionsUtil;
 
@@ -25,7 +26,7 @@ public class GTreeNode {
 	public final static int DEPENDENCY = 1211;
 	
 	
-	public static GTreeNode from(Vector<GhostSet> projects){
+	public static GTreeNode from(CopyOnWriteArrayList<GhostSet> projects){
 		GTreeNode root=new GTreeNode()
 							.setKind(ROOT)
 							.setName("invisible root")
@@ -44,7 +45,7 @@ public class GTreeNode {
 								.setName(ghostSet.getProject().getElementName())
 								.setValue(ghostSet);
 		
-		Collections.sort(ghostSet.getGhosts(),new Comparator<Ghost>() {
+		/*Collections.sort(ghostSet.getGhosts(),new Comparator<Ghost>() {
 			public int compare(Ghost l, Ghost r){
 				if(!l.isMember()){
 					if(!r.isMember()) return l.getName().compareTo(r.getName());
@@ -53,7 +54,7 @@ public class GTreeNode {
 				if(!r.isMember()) return 1;
 				return ((GMember) l).compareTo((GMember)r);	
 			}
-		});
+		});*/
 		for (Ghost ghost : ghostSet.getGhosts()) {//TODO here
 				if(ghost.isMember())	current.addChild(from((GMember)ghost));
 				else 					current.addChild(from((GBehaviorType)ghost));
@@ -91,7 +92,7 @@ public class GTreeNode {
 								.setName(ghost.toString())
 								.setValue(ghost);
 		
-		Collections.sort(ghost.getMembers());
+		/*Collections.sort(ghost.getMembers());*/
 		for (GMember mem : ghost.getMembers()) //TODO here
 			current.addChild(from(mem));
 		

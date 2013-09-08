@@ -3,6 +3,7 @@ package cl.pleiad.ghosts.dependencies;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
@@ -52,24 +53,16 @@ import cl.pleiad.ghosts.markers.GhostMarker;
 public class TypeInferencer {
 	
 	private CompilationUnit cUnit;
-	private Vector<Ghost> ghosts;
-	private Vector<GExtendedClass> extendedGhosts;
+	private CopyOnWriteArrayList<Ghost> ghosts;
 	private Object lock;
 	
-	public TypeInferencer(Vector<Ghost> ghosts, Vector<GExtendedClass> eghosts) {
+	public TypeInferencer(CopyOnWriteArrayList<Ghost> ghosts) {
 		this.ghosts = ghosts;
-		this.extendedGhosts = eghosts;
 		this.lock = new Object();
 	}
 	
-	public Vector<Ghost> getGhosts() {
-		synchronized(lock) {
-			return this.ghosts;
-		}
-	}
-	
-	public Vector<GExtendedClass> getEGhosts() {
-		return this.extendedGhosts;
+	public CopyOnWriteArrayList<Ghost> getGhosts() {
+		return this.ghosts;
 	}
 	
 	public void setCompilationUnit(CompilationUnit cUnit) {
@@ -223,18 +216,21 @@ public class TypeInferencer {
 	
 	public GBehaviorType mutate2(GBehaviorType ghost) {
 		GExtendedClass newGhost = ghost.asClass().asExtendedClass();
-		extendedGhosts.remove(ghost);
-		extendedGhosts.add(newGhost);
+		ghosts.remove(ghost);
+		ghosts.add(newGhost);
 		return newGhost;
 	}
 	
 	public GExtendedClass getSuperGhost() {
 		String name = this.getCurrentFileName();
-		for (GExtendedClass ghost : extendedGhosts) {
-			if (ghost.getExtenders() != null) {
-				for (String gname : ghost.getExtenders()) {
-					if(name.equals(gname)) {
-						return ghost;
+		for (Ghost ghost : ghosts) {
+			if (ghost.kind() == Ghost.CLASS) {
+				GExtendedClass gClass = ((GBehaviorType) ghost).asClass().asExtendedClass();
+				if (gClass.getExtenders() != null) {
+					for (String gname : gClass.getExtenders()) {
+						if(name.equals(gname)) {
+							return gClass;
+						}
 					}
 				}
 			}
@@ -327,22 +323,17 @@ public class TypeInferencer {
 	/**
 	 * Helper Function that returns the superType
 	 * reference once the current contexts contains
-	 * the updated information. In every other case
-	 * it returns a dummy value that exists in the
-	 * meanwhile.
+	 * the updated information.
 	 * @param name the name of the super member
-	 * @return the super member type, or a dummy
+	 * @return the super member type.
 	 */
 	private TypeRef getSuperMemberType(String name) {
-		TypeRef result;
 		GExtendedClass sGhost = this.getSuperGhost();
-		if (sGhost != null && sGhost.getMembers().isEmpty())
-			result = new TypeRef("",false);//second try
-		else if (sGhost != null)
-			result = this.getMemberType(sGhost.getName(), name);
-		else
-			result = new TypeRef("",false);//first try
-		return result;
+		if (sGhost != null)
+			for (GMember member : sGhost.getMembers())
+				if (member.getName().equals(name))
+					return member.getReturnType();
+		return null;
 	}
 	
 	/**
@@ -976,6 +967,4 @@ public class TypeInferencer {
 		}
 		return null;
 	}
-
-
 }

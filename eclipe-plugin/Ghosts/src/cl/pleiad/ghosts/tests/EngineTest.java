@@ -81,7 +81,7 @@ public class EngineTest extends TestCase {
 			e.printStackTrace();
 		}
 		assertFalse(SGhostEngine.get().getProjects().isEmpty());
-		GhostSet projectGS = SGhostEngine.get().getProjects().firstElement();
+		GhostSet projectGS = SGhostEngine.get().getProjects().get(0);
 		String projectName = projectGS.toString();
 		assertTrue(projectName.equals("TestProject"));
 		assertFalse(projectGS.getGhosts().isEmpty());

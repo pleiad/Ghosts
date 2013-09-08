@@ -55,5 +55,10 @@ public class GClass extends GBehaviorType {
 		this.copyContentTo(ghost);
 		return ghost;	
 	}
+
+	@Override
+	public boolean extended() {
+		return false;
+	}
 	
 }

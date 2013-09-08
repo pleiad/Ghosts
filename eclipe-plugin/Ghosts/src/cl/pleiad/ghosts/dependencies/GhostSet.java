@@ -1,6 +1,7 @@
 package cl.pleiad.ghosts.dependencies;
 
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.core.IJavaProject;
@@ -16,8 +17,7 @@ import cl.pleiad.ghosts.core.Ghost;
  */
 public class GhostSet {
 	private IJavaProject project;
-	private Vector<Ghost> ghosts;
-	private Vector<GExtendedClass> eGhosts;
+	private CopyOnWriteArrayList<Ghost> ghosts;
 	
 	/**
 	 * Getter function for the project of the GhostSet
@@ -42,9 +42,8 @@ public class GhostSet {
 	 * @param ghosts the actual set of Ghosts, as a Vector
 	 * @return the GhostSet
 	 */	
-	public GhostSet setGhosts(Vector<Ghost> ghosts, Vector<GExtendedClass> eghosts) {
+	public GhostSet setGhosts(CopyOnWriteArrayList<Ghost> ghosts) {
 		this.ghosts = ghosts;
-		this.eGhosts = eghosts;
 		return this;
 	}
 	
@@ -52,18 +51,9 @@ public class GhostSet {
 	 * Getter function for the Ghosts in the GhostSet
 	 * @return the set of Ghosts, as a Vector
 	 */	
-	public Vector<Ghost> getGhosts() {
-		if(ghosts==null) ghosts=new Vector<Ghost>();
+	public CopyOnWriteArrayList<Ghost> getGhosts() {
+		if(ghosts==null) ghosts=new CopyOnWriteArrayList<Ghost>();
 		return ghosts;
-	}
-	
-	/**
-	 * Getter function for the ExtendedGhosts in the GhostSet
-	 * @return the set of ExtendedGhosts, as a Vector
-	 */	
-	public Vector<GExtendedClass> getEGhosts() {
-		if(eGhosts==null) eGhosts=new Vector<GExtendedClass>();
-		return eGhosts;
 	}
 	
 	/**
@@ -89,7 +79,7 @@ public class GhostSet {
 	 * @param file the file which references will be removed
 	 * @param _ghosts vector of ghosts, to be removed from a file
 	 */
-	private void removeRefFrom(IFile file, Vector _ghosts){
+	private void removeRefFrom(IFile file, CopyOnWriteArrayList _ghosts){
 		Vector<Ghost> discarded=new Vector<Ghost>();
 		for (Object _ghost : _ghosts) {
 			Ghost ghost= (Ghost) _ghost;

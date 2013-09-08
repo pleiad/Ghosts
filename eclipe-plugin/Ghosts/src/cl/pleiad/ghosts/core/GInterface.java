@@ -33,4 +33,16 @@ public class GInterface extends GBehaviorType {
 	public GInterface asInterface() {
 		return this;
 	}
+
+	@Override
+	public GExtendedClass asExtendedClass() {
+		GExtendedClass ghost = new GExtendedClass(name);
+		this.copyContentTo(ghost);
+		return ghost;
+	}
+
+	@Override
+	public boolean extended() {
+		return false;
+	}
 }

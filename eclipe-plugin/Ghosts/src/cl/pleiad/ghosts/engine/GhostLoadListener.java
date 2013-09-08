@@ -74,7 +74,7 @@ public class GhostLoadListener extends GhostListener {
 					set.removeRefFrom((IFile) part.getResource());
 					ASTGhostVisitor visitor = new ASTGhostVisitor()
 									.setBlackList(GBlackList.from(set.getProject()))
-									.setGhosts(set.getGhosts(), set.getEGhosts());
+									.setGhosts(set.getGhosts());
 					SGhostEngine.get().loadGhostsFrom((ICompilationUnit) part, visitor);
 					this.notifyChangesToObservers();
 					return;

@@ -2,6 +2,7 @@ package cl.pleiad.ghosts.engine;
 
 import java.io.PrintStream;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -37,11 +38,11 @@ public class SGhostEngine {
 		return uniqueInstance;
 	}
 	
-	private Vector<GhostSet> projects;
+	private CopyOnWriteArrayList<GhostSet> projects;
 	private Vector<GhostListener> listeners;
 	
 	protected SGhostEngine() {
-		projects = new Vector<GhostSet>();
+		projects = new CopyOnWriteArrayList<GhostSet>();
 		listeners = new Vector<GhostListener>();
 		listeners.add(new GhostLoadListener());	
 		this.registerListeners();
@@ -60,7 +61,7 @@ public class SGhostEngine {
 								. setBlackList(GBlackList.from(project));
 		projects.add(new GhostSet()
 						.setProject(project)
-						.setGhosts(visitor.getGhosts(), visitor.getEGhosts()));
+						.setGhosts(visitor.getGhosts()));
 	}	
 	
 	public void loadGhostsFrom(IJavaProject project) {	
@@ -77,7 +78,7 @@ public class SGhostEngine {
 			
 		projects.add(new GhostSet()
 						.setProject(project)
-						.setGhosts(visitor.getGhosts(), visitor.getEGhosts()));
+						.setGhosts(visitor.getGhosts()));
 	}
 
 	protected void loadGhostsFrom(ICompilationUnit cUnit, ASTGhostVisitor visitor) {
@@ -141,10 +142,8 @@ public class SGhostEngine {
 		return (CompilationUnit) parser.createAST(null /* IProgressMonitor */); // parse
 	}
 	
-	public Vector<GhostSet> getProjects() {
-		synchronized(lock) {
-			return projects;
-		}
+	public CopyOnWriteArrayList<GhostSet> getProjects() {
+		return projects;
 	}
 
 	private void loadGhostsFromOpenJavaProjects() {
@@ -175,7 +174,7 @@ public class SGhostEngine {
 		for (GhostSet set : projects)
 			if (set.getProject().getElementName()
 					.equals(project.getElementName())) {
-				projects.removeElement(set);
+				projects.remove(set);
 				return true;
 			}
 		return false;
@@ -185,7 +184,7 @@ public class SGhostEngine {
 		for (GhostSet set : projects)
 			if (set.getProject().getElementName()
 					.equals(project)) {
-				projects.removeElement(set);
+				projects.remove(set);
 				return true;
 			}
 		return false;
