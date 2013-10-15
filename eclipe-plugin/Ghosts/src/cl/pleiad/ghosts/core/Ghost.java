@@ -12,7 +12,7 @@ import cl.pleiad.ghosts.dependencies.ISourceRef;
  * http://stackoverflow.com/questions/1069528/method-chaining-inheritance-dont-play-well-together-java
  * for method chaining
  */
-public abstract class Ghost {
+public abstract class Ghost implements Comparable<Ghost> {
 	
 	public final static int FIELD = 101;
 	public final static int METHOD = 102;
@@ -20,6 +20,8 @@ public abstract class Ghost {
 	
 	public final static int CLASS = 201;
 	public final static int INTERFACE = 202;
+	
+	public final static int VARIABLE = 301;
 	
 	public final static int DIFF = 10;
 	public final static int NAME_KIND = 12;
@@ -66,9 +68,22 @@ public abstract class Ghost {
 		return false;
 	}
 	
+	public boolean isVariable() {
+		return false;
+	}
+	
 	public abstract int kind();
 	public abstract int similarTo(Ghost other);
 	
 	
 	public abstract boolean hasProblems();
+	
+	public int compareTo(Ghost r) {
+		if(!this.isMember()) {
+			if(!r.isMember()) return this.getName().compareTo(r.getName());
+			return -1;
+		}
+		if(!r.isMember()) return 1;
+		return ((GMember) this).compareTo((GMember)r);	
+	}
 }

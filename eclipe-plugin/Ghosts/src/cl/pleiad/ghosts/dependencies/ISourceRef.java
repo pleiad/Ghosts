@@ -6,6 +6,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.dom.ASTNode;
 
 /**
  * Interface for class members information
@@ -36,4 +37,11 @@ public interface ISourceRef {
 	 * @return a Ghost Marker
 	 */
 	public IMarker getGhostMarker();
+	
+	/**
+	 * Function that return the node representation of
+	 * the SourceRef in the AST
+	 * @return the ASTNode representation
+	 */
+	public ASTNode getNode();
 }

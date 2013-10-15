@@ -6,6 +6,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.dom.ASTNode;
 
 import cl.pleiad.ghosts.markers.GhostMarker;
 
@@ -17,20 +18,26 @@ import cl.pleiad.ghosts.markers.GhostMarker;
 public class MarkerSourceRef implements ISourceRef {
 
 	private IMarker ghostMarker;
+	private ASTNode node;
 	
 	public MarkerSourceRef(IFile file,int line, int startChar
-			,int endChar,String description) throws CoreException{
+			,int endChar,String description, ASTNode n) throws CoreException{
 		ghostMarker=file.createMarker(GhostMarker.ID);
 		ghostMarker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
 		ghostMarker.setAttribute(IMarker.LINE_NUMBER, line);
 		ghostMarker.setAttribute(IMarker.CHAR_START, startChar);
 		ghostMarker.setAttribute(IMarker.CHAR_END, endChar);
 		ghostMarker.setAttribute(IMarker.MESSAGE, description);
+		node = n;
 	}
 	
 	
 	public IMarker getGhostMarker() {
 		return ghostMarker;
+	}
+	
+	public ASTNode getNode() {
+		return node;
 	}
 
 	@Override

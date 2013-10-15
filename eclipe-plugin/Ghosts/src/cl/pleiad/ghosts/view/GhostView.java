@@ -4,10 +4,17 @@ import java.util.Observable;
 import java.util.Observer;
 
 import javax.naming.ldap.HasControls;
+import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
 
+import org.eclipse.core.filebuffers.FileBuffers;
+import org.eclipse.core.filebuffers.ITextFileBuffer;
+import org.eclipse.core.filebuffers.ITextFileBufferManager;
+import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
@@ -15,8 +22,15 @@ import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.search.IJavaSearchConstants;
 import org.eclipse.jdt.internal.core.BinaryType;
 import org.eclipse.jdt.internal.ui.JavaPlugin;
@@ -30,6 +44,8 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.text.Document;
+import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelection;
@@ -41,6 +57,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
+import org.eclipse.text.edits.TextEdit;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.SelectionDialog;
 import org.eclipse.ui.ide.IDE;
@@ -54,6 +71,8 @@ import cl.pleiad.ghosts.dependencies.GhostSet;
 import cl.pleiad.ghosts.dependencies.ISourceRef;
 import cl.pleiad.ghosts.engine.SGhostEngine;
 import cl.pleiad.ghosts.markers.GhostMarker;
+import cl.pleiad.ghosts.refactoring.ASTGBRewriteVisitor;
+import cl.pleiad.ghosts.refactoring.ASTGMRewriteVisitor;
 import cl.pleiad.ghosts.writer.GhostBusterMember;
 import cl.pleiad.ghosts.writer.GhostBusterType;
 import cl.pleiad.ghosts.writer.NonGhostImporter;
@@ -353,18 +372,21 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			if(node==null) return;
 			
 			ghostBuster.checkSelection(node);
+			rename.checkSelection(node);
 			
 			if(node.getKind()==GTreeNode.GBTYPE){
 				this.ghost=(GBehaviorType) node.getValue();
 				menuMgr.add(new ImportAction().setGhostNode(ghost));
 				this.addMutateAction();
 				menuMgr.add(new GhostBusterAction().setGhostNode(node));
+				menuMgr.add(new RenameAction().setGhostNode(node));
 				this.addRefsAction(ghost,true);
 			}	
 				
 			if(node.getKind()==GTreeNode.GMEMBER){
 				boolean bustable=node.isFree();
-				if(bustable) menuMgr.add(new GhostBusterAction().setGhostNode(node)); 
+				if(bustable) menuMgr.add(new GhostBusterAction().setGhostNode(node));
+				menuMgr.add(new RenameAction().setGhostNode(node));
 				this.addRefsAction((GMember) node.getValue(),bustable);
 			}
 		}
@@ -387,13 +409,114 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 		
 	}
 	
+	protected class RenameAction extends Action {
+		
+		protected GTreeNode ghostNode;
+		public RenameAction setGhostNode(GTreeNode _node){
+			this.ghostNode = _node;
+			return this;
+		}
+		
+		protected RenameAction() {
+			super("Rename");
+		}
+
+		private IJavaProject rename (GTreeNode node) {
+			switch (node.getKind()) {
+			case GTreeNode.GHOST_SET:
+				return this.writeChangesFrom((GhostSet) node.getValue(),node);
+			case GTreeNode.GBTYPE:
+				return this.writeChangesFrom((GBehaviorType) node.getValue(),node.getParent());
+			case GTreeNode.GMEMBER:
+				return this.writeChangesFrom((GMember) node.getValue(),node.getParent());
+			}
+			return null;
+		}
+		
+		public void run() {
+			IJavaProject project=null;
+			project = this.rename(ghostNode!=null?ghostNode:getSingleSelection(viewer.getSelection()));
+			if(project != null) SGhostEngine.get().loadGhostsFrom(project);
+		}
+		
+		private IJavaProject nodeToJavaProject(GTreeNode node){
+			if (node.getValue() instanceof GhostSet)
+				return ((GhostSet)node.getValue()).getProject();
+			else
+				return nodeToJavaProject(node.getParent());
+		}
+		
+		private IJavaProject writeChangesFrom(GhostSet selected, GTreeNode node) {
+			IJavaProject project = selected.getProject();
+			return project;
+		}
+		
+		private IJavaProject writeChangesFrom(Ghost selected, GTreeNode node) {
+			IJavaProject project = nodeToJavaProject(node);
+			ImageIcon icon = new ImageIcon(getClass().getResource("/img/ghostac.jpg"));
+			String newName = (String) JOptionPane.showInputDialog(null, "Insert the new name", 
+							 "Ghost Rename", JOptionPane.QUESTION_MESSAGE, icon, null, null);
+			try{
+				IFile file = null;
+				AST ast = null;
+				ASTRewrite rewrite = null;
+				IPath path = null;
+				for (ISourceRef reference : selected.getDependencies()) {
+					if (file == null || !file.equals(reference.getFile())) {
+						file = reference.getFile();
+						path = file.getFullPath();
+						ast = reference.getNode().getAST();
+						rewrite = ASTRewrite.create(ast);
+					}
+					if (reference.getNode() != null) {
+						if (reference.getNode().getNodeType() == ASTNode.SIMPLE_TYPE) {
+							SimpleType newType = ast.newSimpleType(ast.newSimpleName(newName));
+							rewrite.replace((SimpleType) reference.getNode(), newType, null);
+						}
+						else if (reference.getNode().getNodeType() == ASTNode.SIMPLE_NAME) {
+							SimpleName nName = ast.newSimpleName(newName);
+							rewrite.replace((SimpleName) reference.getNode(), nName, null);
+						}
+					}
+					if (reference.equals(selected.getDependencies().
+							get(selected.getDependencies().size()-1))) {
+						ITextFileBufferManager bufferManager = FileBuffers
+								.getTextFileBufferManager(); 
+						bufferManager.connect(path, LocationKind.IFILE, null);
+						ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
+						IDocument document = textFileBuffer.getDocument();
+						rewrite.rewriteAST(document, null).apply(document);
+						textFileBuffer.commit(null, true);
+						bufferManager.disconnect(path, LocationKind.IFILE, null);
+						file = reference.getFile();
+						path = file.getFullPath();
+					}
+				}
+			}catch (Exception e) { e.printStackTrace(); return null;}
+			//notify file and references!!! simpler -> project
+			return project;
+		}
+
+		public ImageDescriptor getImageDescriptor(){
+			return ImageDescriptor.createFromImage(
+							GViewLavelProvider.getImageNamed("ghost16_2.ico"));	
+		}
+
+		public void checkSelection(GTreeNode selected) {
+			if(selected.isFree())	this.setEnabled(true);
+			else					this.setEnabled(false);
+		}
+	}
+	
+	
 	private TreeViewer viewer;
 	private MenuManager menuMgr= new MenuManager();
 	private Menu mainMenu;
 	private GViewTreeContentProvider contentProvider=new GViewTreeContentProvider();
 	
 	
-	private GhostBusterAction ghostBuster=new GhostBusterAction();
+	private GhostBusterAction ghostBuster = new GhostBusterAction();
+	private RenameAction rename = new RenameAction();
 	
 	private Action refresh=new Action("Refresh") {
 		public ImageDescriptor getImageDescriptor(){

@@ -10,8 +10,8 @@ public class GMethod extends GMember {
 
 	private Vector<TypeRef> paramTypes;
 	
-	public GMethod(String name, boolean staticMember) {
-		super(name, staticMember);
+	public GMethod(String name, boolean staticMember, boolean declared) {
+		super(name, staticMember, declared);
 		paramTypes = new Vector<TypeRef>(); //initial capacity?
 	}	
 
@@ -28,7 +28,6 @@ public class GMethod extends GMember {
 	protected String toStringWithOutReturn(){
 		return name+"("+this.paramTypesAsLine()+")";
 	}
-	
 
 	private String paramTypesAsLine() {
 		String line="";
@@ -36,6 +35,34 @@ public class GMethod extends GMember {
 			line+=","+type;
 		}
 		return line.length() > 0?line.substring(1):line;
+	}
+	
+	private String paramDValuesAsLine() {
+		String line="";
+		for (TypeRef type : paramTypes) {
+			if (type.getName().equals("int") || type.getName().equals("byte") ||
+				type.getName().equals("short"))
+				line+=",0";
+			else if (type.getName().equals("long"))
+				line+=",0L";
+			else if (type.getName().equals("float"))
+				line+=",0.0f";
+			else if (type.getName().equals("double"))
+				line+=",0.0";
+			else if (type.getName().equals("char"))
+				line+=",'a'";
+			else if (type.getName().equals("boolean"))
+				line+=",false";
+			else if (type.getName().equals("java.lang.String"))
+				line+=",\"\"";
+			else
+				line+=",null";
+		}
+		return line.length() > 0?line.substring(1):line;
+	}
+	
+	public String toCompletitionString(){
+		return name+"("+this.paramDValuesAsLine()+")";
 	}
 	
 	@Override
@@ -66,5 +93,4 @@ public class GMethod extends GMember {
 		
 		return EQUALS;
 	}
-
 }

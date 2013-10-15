@@ -20,10 +20,10 @@ public class CoreTest {
 	GInterface b = new GInterface("Foo");
 	GClass c = new GClass("Bar");
 	GClass d = new GClass("Bar2");
-	GField e = new GField("a",true);
-	GField f = new GField("b",false);
-	GMethod g = new GMethod("a",true);
-	GMethod h = new GMethod("b",false);
+	GField e = new GField("a",true, false);
+	GField f = new GField("b",false, false);
+	GMethod g = new GMethod("a",true, false);
+	GMethod h = new GMethod("b",false, false);
 	GConstructor i = new GConstructor();
 	GConstructor j = new GConstructor();
 	

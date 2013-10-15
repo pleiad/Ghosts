@@ -1,5 +1,6 @@
 package cl.pleiad.ghosts.view;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
@@ -45,19 +46,12 @@ public class GTreeNode {
 								.setName(ghostSet.getProject().getElementName())
 								.setValue(ghostSet);
 		
-		/*Collections.sort(ghostSet.getGhosts(),new Comparator<Ghost>() {
-			public int compare(Ghost l, Ghost r){
-				if(!l.isMember()){
-					if(!r.isMember()) return l.getName().compareTo(r.getName());
-					return -1;
-				}
-				if(!r.isMember()) return 1;
-				return ((GMember) l).compareTo((GMember)r);	
-			}
-		});*/
-		for (Ghost ghost : ghostSet.getGhosts()) {//TODO here
-				if(ghost.isMember())	current.addChild(from((GMember)ghost));
-				else 					current.addChild(from((GBehaviorType)ghost));
+		Object[] setGhosts = ghostSet.getGhosts().toArray();
+		Arrays.sort(setGhosts);
+		
+		for (Object ghost : setGhosts) {
+				if(((Ghost) ghost).isMember())	current.addChild(from((GMember)ghost));
+				else if(!((Ghost) ghost).isVariable()) current.addChild(from((GBehaviorType)ghost));
 		}
 		return current;
 	}
@@ -92,9 +86,10 @@ public class GTreeNode {
 								.setName(ghost.toString())
 								.setValue(ghost);
 		
-		/*Collections.sort(ghost.getMembers());*/
-		for (GMember mem : ghost.getMembers()) //TODO here
-			current.addChild(from(mem));
+		Object[] members = ghost.getMembers().toArray();
+		Arrays.sort(members);
+		for (Object mem : members)
+			current.addChild(from((GMember) mem));
 		
 		if(!GhostView.refsInMenu) 
 			current.addChild(fromDependencies(ghost.getDependencies()));

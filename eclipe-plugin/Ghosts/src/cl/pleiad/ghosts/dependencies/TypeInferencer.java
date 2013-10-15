@@ -46,15 +46,16 @@ import cl.pleiad.ghosts.core.GField;
 import cl.pleiad.ghosts.core.GInterface;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.GMethod;
+import cl.pleiad.ghosts.core.GVariable;
 import cl.pleiad.ghosts.core.Ghost;
 import cl.pleiad.ghosts.markers.GhostMarker;
 
 
 public class TypeInferencer {
-	
 	private CompilationUnit cUnit;
 	private CopyOnWriteArrayList<Ghost> ghosts;
 	private Object lock;
+	private int counter;
 	
 	public TypeInferencer(CopyOnWriteArrayList<Ghost> ghosts) {
 		this.ghosts = ghosts;
@@ -124,7 +125,8 @@ public class TypeInferencer {
 				if(aux!=null) {
 					return aux;
 				}
-			} else
+			}
+			else if (!ghost.isVariable())
 				for(GMember gmember : ((GBehaviorType)ghost).getMembers()) {
 					GMember aux=this.checkAndUnifyHelper(gmember, member, kind);
 					if(aux!=null){
@@ -164,12 +166,6 @@ public class TypeInferencer {
 			if(member.getReturnType().getName().equals("void"))
 				if( ((GMethod)ghost).similarParamTypesTo((GMethod)member) )
 					return ghost.absorb(member);
-			
-			if(ghost.getReturnType().getName().equals(""))
-				return member.absorb(ghost);
-			
-			if(member.getReturnType().getName().equals(""))
-				return ghost.absorb(member);
 			
 			//System.out.println(ghost+" |similar| "+member);
 			GhostMarker.createIncompatibleDefMarkerFrom(ghost);
@@ -264,7 +260,6 @@ public class TypeInferencer {
 		case ASTNode.QUALIFIED_NAME: return inferContextTypeOf(node, deep);
 		}
 		// everything failed, return Object
-		//System.out.println(node.getNodeType());
 		return this.getRootType();
 	}
 
@@ -287,7 +282,7 @@ public class TypeInferencer {
 				ctxNode = ((MethodInvocation) node).getExpression();
 				break;
 			case ASTNode.QUALIFIED_NAME:
-				ctxNode = ((QualifiedName) node);
+				ctxNode = ((QualifiedName) node).getQualifier();
 				break;
 			case ASTNode.SUPER_FIELD_ACCESS:
 				ctxNode = ((SuperFieldAccess) node);
@@ -305,13 +300,27 @@ public class TypeInferencer {
 					result = this.getMemberType(this.getCurrentFileName(), name);
 					break;
 				case ASTNode.SIMPLE_NAME:
-					result = this.getMemberType(this.getCurrentFileName(), name);
+					TypeRef aux = this.getMemberType(this.getCurrentFileName()
+								  ,((SimpleName)ctxNode).getIdentifier());
+					if (aux != null)
+						result = this.getMemberType(aux.getName(), name);
+					if (result == null) {
+						result = this.getVariableType(((SimpleName)ctxNode).getIdentifier(), ctxNode);
+					}
 					break;
+				case ASTNode.FIELD_ACCESS:
+					TypeRef parent = getCurrentTypeOf(ctxNode);
+					result = this.getMemberType(parent.getName(), name);
+					break;
+				case ASTNode.METHOD_INVOCATION:
+					TypeRef parent2 = getCurrentTypeOf(ctxNode);
+					result = this.getMemberType(parent2.getName(), name);
+					break;					
 				case ASTNode.SUPER_FIELD_ACCESS:
-				result = getSuperMemberType(name);
+					result = getSuperMemberType(name);
 					break;
 				case ASTNode.SUPER_METHOD_INVOCATION:
-				result = getSuperMemberType(name);
+					result = getSuperMemberType(name);
 					break;					
 			}
 		if (result != null)
@@ -545,12 +554,15 @@ public class TypeInferencer {
 				return null;
 		}
 		TypeRef result = inferCurrentTypeOf((Expression) node, name);
-		//TODO find cases
-		/*if (result.getName().equals("java.lang.Object")) {
-			TypeRef noName = new TypeRef("noName",false).setRef(result.getRef());
+		//Unknown types
+		if (result.getName().equals("java.lang.Object")) {
+			TypeRef noName = new TypeRef("noName" + this.counter,false);
+			GClass noClass = new GClass("noName" + this.counter++);
+			noName.setRef(noClass);
+			this.getGhosts().add(noClass);
 			return noName;
 		}
-		else*/	
+		else
 			return result;
 	}
 	
@@ -863,7 +875,7 @@ public class TypeInferencer {
 	 * @param ghost the ghost where the node is looked
 	 * @return the Marker Reference
 	 */
-	public ISourceRef getSourceRef(ASTNode node, Ghost ghost) {
+	public ISourceRef getSourceRef(ASTNode node, ASTNode simple, Ghost ghost) {
 		int startChar = node.getStartPosition();
 		IFile file = (IFile) this.cUnit.getJavaElement().getResource();
 		ISourceRef ref = null;
@@ -873,7 +885,8 @@ public class TypeInferencer {
 					this.cUnit.getLineNumber(startChar), 
 					startChar, 
 					startChar + node.getLength(),
-					ghost.toString());
+					ghost.toString(),
+					simple);
 			ASTNode parent = node;
 			//TODO Change here
 			while(parent.getNodeType() != ASTNode.TYPE_DECLARATION) {
@@ -959,10 +972,31 @@ public class TypeInferencer {
 	 */
 	public TypeRef getMemberType(String cName, String mName) {
 		for (Ghost ghost : ghosts) {
-			if(ghost.isMember() && 
-			   ghost.getName().equals(mName) &&
-			   ((GMember) ghost).getOwnerType().getName().equals(cName)) {
+			if(ghost.isMember()) {
+			   if (ghost.getName().equals(mName) &&
+				   ((GMember) ghost).getOwnerType().getName().equals(cName))
 				return ((GMember) ghost).getReturnType();
+			}
+			else if(!ghost.isVariable()) {
+				for (GMember member: ((GBehaviorType)ghost).getMembers())
+					if (member.getName().equals(mName) &&
+						member.getOwnerType().getName().equals(cName))
+						return member.getReturnType();
+			}
+		}
+		return null;
+	}
+	
+	private TypeRef getVariableType(String varName, Expression ctxNode) {
+		for (Ghost ghost : ghosts) {
+			if(ghost.isVariable() && ghost.getName().equals(varName)) {
+				ASTNode parent = ctxNode.getParent();
+				while (parent != null) {
+					if (parent.equals(((GVariable) ghost).getContext()))
+						return ((GVariable) ghost).getReturnType();
+					else
+						parent = parent.getParent();
+				}
 			}
 		}
 		return null;

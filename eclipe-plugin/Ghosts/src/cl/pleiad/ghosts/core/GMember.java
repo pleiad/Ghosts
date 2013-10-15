@@ -7,10 +7,11 @@ import cl.pleiad.ghosts.dependencies.UnionTypeRef;
 import cl.pleiad.ghosts.markers.GhostMarker;
 
 
-public abstract class GMember extends Ghost implements Comparable<GMember>{
+public abstract class GMember extends Ghost {
 	
 	protected TypeRef returnType;
-	protected boolean staticMember; 	
+	protected boolean staticMember;
+	public boolean isDeclared;
 	protected TypeRef ownerType;
 	
 	public TypeRef getOwnerType() {
@@ -25,8 +26,10 @@ public abstract class GMember extends Ghost implements Comparable<GMember>{
 		return staticMember;
 	}
 	
-	
-	public int compareTo(GMember other) { //compared by name
+	@Override
+	public int compareTo(Ghost other) { //compared by name, assumes a GMember
+		if(other.kind() == CLASS || other.kind() == INTERFACE) return 1;
+		if(other.kind() == VARIABLE) return 1;
 		if(this.kind() == CONSTRUCTOR) return -1;
 		if(other.kind() == CONSTRUCTOR) return 1;
 		return this.name.compareTo(other.getName());
@@ -36,10 +39,11 @@ public abstract class GMember extends Ghost implements Comparable<GMember>{
 		this.staticMember = staticMember;
 	}*/
 
-	protected GMember(String name, boolean staticMember) {
+	protected GMember(String name, boolean staticMember, boolean declared) {
 		super();
 		this.name = name;
 		this.staticMember = staticMember;
+		this.isDeclared = declared;
 	}
 	
 
@@ -63,6 +67,10 @@ public abstract class GMember extends Ghost implements Comparable<GMember>{
 	}
 
 	public GMember absorb(GMember member) {
+		if (this.isDeclared || member.isDeclared) {
+			this.isDeclared = true;
+			member.isDeclared = true;
+		}
 		if (member.getReturnType().getName() == "Union" &&
 			this.getReturnType().getName() == "Union") {
 			int thisSize = ((UnionTypeRef) this.getReturnType()).getNames().size();

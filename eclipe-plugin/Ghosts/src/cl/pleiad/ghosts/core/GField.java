@@ -2,8 +2,8 @@ package cl.pleiad.ghosts.core;
 
 public class GField extends GMember {
 	
-	public GField(String name, boolean staticMember) {
-		super(name, staticMember);
+	public GField(String name, boolean staticMember, boolean declared) {
+		super(name, staticMember, declared);
 	}
 
 	@Override
@@ -25,5 +25,4 @@ public class GField extends GMember {
 	protected int additionalChecks(GMember other) {
 		return EQUALS; //no more checks is needed!
 	}
-	
 }

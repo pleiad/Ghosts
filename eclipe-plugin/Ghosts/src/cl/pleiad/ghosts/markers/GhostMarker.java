@@ -46,6 +46,7 @@ public class GhostMarker{
 				GhostMarker.CONTEXT_ID, false, IResource.DEPTH_ONE)) {
 			if(	line != -1 &&
 				mark != null &&
+				mark.getAttribute(IMarker.LINE_NUMBER) != null &&
 				((Integer)mark.getAttribute(IMarker.LINE_NUMBER)) == line) return true;
 		}
 		return false;

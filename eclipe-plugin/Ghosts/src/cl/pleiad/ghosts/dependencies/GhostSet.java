@@ -92,7 +92,7 @@ public class GhostSet {
 			for (ISourceRef ref : toRemove) refs.remove(ref);
 			if(refs.size() == 0)	discarded.add(ghost);
 			
-			if(!ghost.isMember())
+			if(!ghost.isMember() && !ghost.isVariable())
 				this.removeRefFrom(file, ((GBehaviorType) ghost).getMembers());
 
 		}

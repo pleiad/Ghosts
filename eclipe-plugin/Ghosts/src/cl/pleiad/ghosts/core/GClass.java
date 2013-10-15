@@ -60,5 +60,4 @@ public class GClass extends GBehaviorType {
 	public boolean extended() {
 		return false;
 	}
-	
 }

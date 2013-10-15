@@ -73,4 +73,5 @@ public abstract class GBehaviorType extends Ghost {
 				return true;
 		return false;
 	}
+	
 }
