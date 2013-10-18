@@ -133,7 +133,6 @@ public class ASTGhostVisitor extends ASTVisitor {
 		super.endVisit(throwNode);
 		Expression expr = throwNode.getExpression();
 		String typeName = expr.resolveTypeBinding().getName();
-		int nodeType = expr.getNodeType();
 		GBehaviorType excGhost = inferencer.getGhostType(typeName);
 		if (excGhost != null) {
 			GClass excGClass = (GClass) inferencer.mutate(excGhost);

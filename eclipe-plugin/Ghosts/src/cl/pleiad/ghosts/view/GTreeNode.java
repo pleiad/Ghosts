@@ -1,19 +1,14 @@
 package cl.pleiad.ghosts.view;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Vector;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.eclipse.jdt.internal.corext.util.CollectionsUtil;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.Ghost;
 import cl.pleiad.ghosts.dependencies.GhostSet;
 import cl.pleiad.ghosts.dependencies.ISourceRef;
-import cl.pleiad.ghosts.engine.SGhostEngine;
 import cl.pleiad.ghosts.markers.GhostMarker;
 
 

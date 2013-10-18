@@ -1,7 +1,6 @@
 package cl.pleiad.ghosts.dependencies;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.eclipse.jdt.core.dom.Type;
 
 /**
  * Class that contains the necessarily information

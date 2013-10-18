@@ -36,6 +36,7 @@ public class GViewLavelProvider extends LabelProvider {
 	}
 	
 	private  static Image ghost_member;
+	@SuppressWarnings("unused")
 	private final static Image getGhostMember(){
 		if(ghost_member== null) ghost_member=getImageNamed("public_co.png");
 		return  ghost_member;

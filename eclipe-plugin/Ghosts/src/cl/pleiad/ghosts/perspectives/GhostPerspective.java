@@ -1,12 +1,7 @@
 package cl.pleiad.ghosts.perspectives;
 
-import org.eclipse.core.resources.IFolder;
-import org.eclipse.ui.IFolderLayout;
 import org.eclipse.ui.IPageLayout;
 import org.eclipse.ui.IPerspectiveFactory;
-
-import cl.pleiad.ghosts.view.GhostView;
-
 
 public class GhostPerspective implements IPerspectiveFactory {
 

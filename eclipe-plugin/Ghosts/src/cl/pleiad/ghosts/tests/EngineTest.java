@@ -2,17 +2,10 @@ package cl.pleiad.ghosts.tests;
 
 import junit.framework.TestCase;
 
-import org.eclipse.core.internal.runtime.InternalPlatform;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.Platform;
-import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IType;
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.compiler.ReconcileContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

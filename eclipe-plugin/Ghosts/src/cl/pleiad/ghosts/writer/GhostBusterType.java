@@ -1,26 +1,12 @@
 package cl.pleiad.ghosts.writer;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.PrintStream;
-
-import javax.annotation.Resource;
-
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.ITextFileBuffer;
 import org.eclipse.core.filebuffers.ITextFileBufferManager;
-import org.eclipse.core.internal.resources.Workspace;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IPackageFragment;
-import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.SimpleName;
@@ -28,7 +14,6 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 import org.eclipse.jdt.core.dom.Type;
-import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
@@ -56,8 +41,8 @@ public class GhostBusterType extends AbstractGhostBuster {
 		ITextFileBufferManager bufferManager = FileBuffers
 				.getTextFileBufferManager(); 
 
-		bufferManager.connect(path, null);
-		ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path);
+		bufferManager.connect(path, LocationKind.IFILE, null);
+		ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
 		IDocument document = textFileBuffer.getDocument();
 
 		writer.rewriteAST(document, null).apply(document);
@@ -65,7 +50,7 @@ public class GhostBusterType extends AbstractGhostBuster {
 		textFileBuffer
 				.commit(null /* ProgressMonitor */, false /* Overwrite */); // (3)
 
-		bufferManager.disconnect(path, null);
+		bufferManager.disconnect(path, LocationKind.IFILE, null);
 		
 		applyBodyChanges();
 	}
@@ -95,7 +80,6 @@ public class GhostBusterType extends AbstractGhostBuster {
 			GClass ghostC = ((GBehaviorType)ghost).asClass();
 			if (ghostC.getSuperCls() != null) {
 				TypeRef superC = ghostC.getSuperCls();
-				//System.out.println(superC.getName());
 				ownerNode.setSuperclassType(this.getTypeByName(superC.getName()));
 			}
 		}
@@ -122,7 +106,7 @@ public class GhostBusterType extends AbstractGhostBuster {
 			return ast.newPrimitiveType(PrimitiveType.DOUBLE);
 		else if(typeName.equals("float"))
 			return ast.newPrimitiveType(PrimitiveType.FLOAT);
-		else if(typeName.equals("int"))
+		else if(typeName.equals("int") || typeName.equals("Union")) //most generic
 			return ast.newPrimitiveType(PrimitiveType.INT);
 		else if(typeName.equals("long"))
 			return ast.newPrimitiveType(PrimitiveType.LONG);

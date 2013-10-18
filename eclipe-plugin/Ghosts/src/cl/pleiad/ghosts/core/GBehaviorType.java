@@ -1,7 +1,6 @@
 package cl.pleiad.ghosts.core;
 
 import java.io.PrintStream;
-import java.util.Vector;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public abstract class GBehaviorType extends Ghost {

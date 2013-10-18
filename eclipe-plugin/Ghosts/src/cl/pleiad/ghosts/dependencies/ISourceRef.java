@@ -1,11 +1,7 @@
 package cl.pleiad.ghosts.dependencies;
 
-import java.io.PrintStream;
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTNode;
 
 /**

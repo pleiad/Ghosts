@@ -3,7 +3,6 @@ package cl.pleiad.ghosts.view;
 import java.util.Observable;
 import java.util.Observer;
 
-import javax.naming.ldap.HasControls;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
@@ -12,21 +11,16 @@ import org.eclipse.core.filebuffers.ITextFileBuffer;
 import org.eclipse.core.filebuffers.ITextFileBufferManager;
 import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.ImportDeclaration;
-import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
@@ -44,7 +38,6 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
@@ -57,26 +50,20 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
-import org.eclipse.text.edits.TextEdit;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.dialogs.SelectionDialog;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.ViewPart;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
-import cl.pleiad.ghosts.core.GClass;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.Ghost;
 import cl.pleiad.ghosts.dependencies.GhostSet;
 import cl.pleiad.ghosts.dependencies.ISourceRef;
 import cl.pleiad.ghosts.engine.SGhostEngine;
 import cl.pleiad.ghosts.markers.GhostMarker;
-import cl.pleiad.ghosts.refactoring.ASTGBRewriteVisitor;
-import cl.pleiad.ghosts.refactoring.ASTGMRewriteVisitor;
 import cl.pleiad.ghosts.writer.GhostBusterMember;
 import cl.pleiad.ghosts.writer.GhostBusterType;
 import cl.pleiad.ghosts.writer.NonGhostImporter;
-import cl.pleiad.ghosts.decorators.GhostJavaElementDecorator;
 
 
 @SuppressWarnings("restriction")
@@ -123,6 +110,8 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 		protected GTreeNode ghostNode;
 		public GhostBusterAction setGhostNode(GTreeNode _node){
 			this.ghostNode = _node;
+			if (_node.getKind() == GTreeNode.GBTYPE)
+				this.setEnabled(!((GBehaviorType)_node.getValue()).getDependencies().isEmpty());
 			return this;
 		}
 		
@@ -130,7 +119,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			super("Bust it!");
 		}
 
-		private IJavaProject bust(GTreeNode node){
+		private IJavaProject bust(GTreeNode node) {
 			switch (node.getKind()) {
 			case GTreeNode.GHOST_SET:
 				return this.writeChangesFrom((GhostSet) node.getValue(),node);
@@ -278,7 +267,6 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			if(project!= null) SGhostEngine.get().loadGhostsFrom(project);
 		}
 		
-		@SuppressWarnings("restriction")
 		protected String getQName(){
 			OpenTypeSelectionDialog dialog= new OpenTypeSelectionDialog(
 					JavaPlugin.getActiveWorkbenchShell(), true,
@@ -374,7 +362,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			ghostBuster.checkSelection(node);
 			rename.checkSelection(node);
 			
-			if(node.getKind()==GTreeNode.GBTYPE){
+			if(node.getKind()==GTreeNode.GBTYPE) {
 				this.ghost=(GBehaviorType) node.getValue();
 				menuMgr.add(new ImportAction().setGhostNode(ghost));
 				this.addMutateAction();
@@ -399,7 +387,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			}	
 		}
 		
-		private void addMutateAction(){
+		private void addMutateAction() {
 			Action action= asInterface;
 			if(ghost.kind()==Ghost.INTERFACE) action = asClass;
 
@@ -414,6 +402,8 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 		protected GTreeNode ghostNode;
 		public RenameAction setGhostNode(GTreeNode _node){
 			this.ghostNode = _node;
+			if (_node.getKind() == GTreeNode.GBTYPE)
+				this.setEnabled(!((GBehaviorType)_node.getValue()).getDependencies().isEmpty());
 			return this;
 		}
 		
@@ -534,7 +524,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 		public ImageDescriptor getImageDescriptor(){
 			return ImageDescriptor.createFromImage(
 					 PlatformUI.getWorkbench().getSharedImages()
-					 	.getImage(org.eclipse.ui.ISharedImages.IMG_OPEN_MARKER));
+					 	.getImage(org.eclipse.ui.ide.IDE.SharedImages.IMG_OPEN_MARKER));
 		}
 		public void run(){
 			refsInMenu=!refsInMenu;

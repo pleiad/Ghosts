@@ -7,7 +7,6 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.core.IJavaProject;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
-import cl.pleiad.ghosts.core.GExtendedClass;
 import cl.pleiad.ghosts.core.Ghost;
 
 

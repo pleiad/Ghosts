@@ -3,13 +3,11 @@ package cl.pleiad.ghosts.writer;
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.ITextFileBuffer;
 import org.eclipse.core.filebuffers.ITextFileBufferManager;
+import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
-import org.eclipse.jdt.core.dom.Name;
-import org.eclipse.jdt.core.dom.QualifiedName;
-import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
@@ -29,8 +27,8 @@ public class NonGhostImporter extends AbstractGhostBuster {
 		ITextFileBufferManager bufferManager = FileBuffers
 				.getTextFileBufferManager(); 
 
-		bufferManager.connect(path, null);
-		ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path);
+		bufferManager.connect(path, LocationKind.IFILE, null);
+		ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
 		IDocument document = textFileBuffer.getDocument();
 
 		writer.rewriteAST(document, null).apply(document);
@@ -38,7 +36,7 @@ public class NonGhostImporter extends AbstractGhostBuster {
 		textFileBuffer
 				.commit(null /* ProgressMonitor */, false /* Overwrite */); // (3)
 
-		bufferManager.disconnect(path, null);
+		bufferManager.disconnect(path, LocationKind.IFILE, null);
 	}
 
 	@Override

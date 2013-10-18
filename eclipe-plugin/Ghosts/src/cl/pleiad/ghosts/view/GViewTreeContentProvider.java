@@ -1,19 +1,7 @@
 package cl.pleiad.ghosts.view;
 
-import java.util.HashMap;
-import java.util.Observer;
-import java.util.Vector;
-
-import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
-
-import cl.pleiad.ghosts.core.GBehaviorType;
-import cl.pleiad.ghosts.core.GMember;
-import cl.pleiad.ghosts.core.Ghost;
-import cl.pleiad.ghosts.dependencies.GhostSet;
-import cl.pleiad.ghosts.engine.SGhostEngine;
-
 
 public class GViewTreeContentProvider implements ITreeContentProvider {
 

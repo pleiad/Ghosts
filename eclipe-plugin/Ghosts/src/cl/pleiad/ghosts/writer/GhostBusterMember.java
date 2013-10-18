@@ -1,28 +1,19 @@
 package cl.pleiad.ghosts.writer;
 
-import java.util.Vector;
-
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.ITextFileBuffer;
 import org.eclipse.core.filebuffers.ITextFileBufferManager;
-import org.eclipse.core.resources.IFile;
+import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.PrimitiveType.Code;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
-import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
-import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -30,13 +21,8 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
-import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.text.edits.MalformedTreeException;
-import org.eclipse.text.edits.TextEdit;
 
-import cl.pleiad.ghosts.core.GConstructor;
 import cl.pleiad.ghosts.core.GField;
 import cl.pleiad.ghosts.core.GMember;
 import cl.pleiad.ghosts.core.GMethod;
@@ -78,8 +64,8 @@ public class GhostBusterMember extends AbstractGhostBuster {
 		ITextFileBufferManager bufferManager = FileBuffers
 				.getTextFileBufferManager(); 
 
-		bufferManager.connect(path, null);
-		ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path);
+		bufferManager.connect(path, LocationKind.IFILE, null);
+		ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
 		IDocument document = textFileBuffer.getDocument();
 
 		writer.rewriteAST(document, null).apply(document);
@@ -87,7 +73,7 @@ public class GhostBusterMember extends AbstractGhostBuster {
 		textFileBuffer
 				.commit(null /* ProgressMonitor */, false /* Overwrite */); // (3)
 
-		bufferManager.disconnect(path, null);
+		bufferManager.disconnect(path, LocationKind.IFILE, null);
 	}
 
 
@@ -99,6 +85,7 @@ public class GhostBusterMember extends AbstractGhostBuster {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	protected void createMethod(boolean isConstructor) {
 		GMethod gmember = (GMethod) ghost;
 		MethodDeclaration mth=ast.newMethodDeclaration();
@@ -148,6 +135,7 @@ public class GhostBusterMember extends AbstractGhostBuster {
 		return ast.newNullLiteral();
 	}
 
+	@SuppressWarnings("unchecked")
 	protected void createField() {
 		GField gfield = (GField) ghost;
 		
@@ -166,6 +154,7 @@ public class GhostBusterMember extends AbstractGhostBuster {
 		if(typeRef.getName().equals("short")) code=PrimitiveType.SHORT;
 		if(typeRef.getName().equals("char")) code=PrimitiveType.CHAR;
 		if(typeRef.getName().equals("int")) code=PrimitiveType.INT;
+		if(typeRef.getName().equals("Union")) code=PrimitiveType.INT;
 		if(typeRef.getName().equals("long")) code=PrimitiveType.LONG;
 		if(typeRef.getName().equals("float")) code=PrimitiveType.FLOAT;
 		if(typeRef.getName().equals("double")) code=PrimitiveType.DOUBLE;

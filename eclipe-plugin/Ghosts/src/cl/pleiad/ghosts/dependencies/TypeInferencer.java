@@ -2,7 +2,6 @@ package cl.pleiad.ghosts.dependencies;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.core.resources.IFile;
@@ -21,9 +20,7 @@ import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
-import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
-import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
@@ -33,7 +30,6 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.Type;
-import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -54,12 +50,18 @@ import cl.pleiad.ghosts.markers.GhostMarker;
 public class TypeInferencer {
 	private CompilationUnit cUnit;
 	private CopyOnWriteArrayList<Ghost> ghosts;
-	private Object lock;
 	private int counter;
 	
 	public TypeInferencer(CopyOnWriteArrayList<Ghost> ghosts) {
-		this.ghosts = ghosts;
-		this.lock = new Object();
+		if (!ghosts.isEmpty()) {
+			for (Ghost ghost : ghosts)
+				for (ISourceRef ref : ghost.getDependencies())
+					if (ref.getLineNumber() == -1) {
+						ghosts.remove(ghost);
+						break;
+					}
+		}
+		this.ghosts = ghosts;		
 	}
 	
 	public CopyOnWriteArrayList<Ghost> getGhosts() {
@@ -136,8 +138,11 @@ public class TypeInferencer {
 		}//if there are not similars!
 		
 		if(member.getOwnerType().isConcrete()) ghosts.add(member);
-		else this.getGhostType(member.getOwnerType().getName())
-					.getMembers().add(member);			
+		else {
+			GBehaviorType ghost = this.getGhostType(member.getOwnerType().getName());
+			if (ghost!= null && ghost.getMembers() != null)
+				ghost.getMembers().add(member);
+		}
 			
 		return member;
 	}
@@ -185,7 +190,7 @@ public class TypeInferencer {
 		TypeRef owner = member.getOwnerType();
 		if(!owner.isConcrete()) {
 			GBehaviorType ghost = (GBehaviorType) owner.getRef();
-			if(ghost.kind() == Ghost.INTERFACE) {
+			if(ghost != null && ghost.kind() == Ghost.INTERFACE) {
 				if(ghost.isMutable()) {
 					GBehaviorType newGhost = mutate(ghost);
 					owner.setRef(newGhost);
@@ -557,6 +562,11 @@ public class TypeInferencer {
 		//Unknown types
 		if (result.getName().equals("java.lang.Object")) {
 			TypeRef noName = new TypeRef("noName" + this.counter,false);
+			for (Ghost ghost : this.getGhosts()) 
+				if (ghost.getName().equals("noName" + this.counter)) {
+					this.counter++;
+					return noName;
+				}
 			GClass noClass = new GClass("noName" + this.counter++);
 			noName.setRef(noClass);
 			this.getGhosts().add(noClass);

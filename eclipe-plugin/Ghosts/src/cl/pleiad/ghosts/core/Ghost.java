@@ -2,8 +2,6 @@
 
 import java.io.PrintStream;
 import java.util.Vector;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import cl.pleiad.ghosts.dependencies.ISourceRef;
 

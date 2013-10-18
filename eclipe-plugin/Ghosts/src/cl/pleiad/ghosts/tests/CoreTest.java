@@ -2,9 +2,6 @@ package cl.pleiad.ghosts.tests;
 
 import static org.junit.Assert.*;
 
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.PrimitiveType;
-import org.eclipse.jdt.core.dom.Type;
 import org.junit.Test;
 
 import cl.pleiad.ghosts.core.GClass;

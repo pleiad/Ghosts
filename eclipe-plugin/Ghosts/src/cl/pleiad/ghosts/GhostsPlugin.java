@@ -1,12 +1,8 @@
 package cl.pleiad.ghosts;
 
-import org.eclipse.jdt.ui.PreferenceConstants;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
-import cl.pleiad.ghosts.blacklist.GBlackList;
 import cl.pleiad.ghosts.engine.SGhostEngine;
 
 

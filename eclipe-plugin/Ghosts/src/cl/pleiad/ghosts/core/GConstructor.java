@@ -1,7 +1,5 @@
 package cl.pleiad.ghosts.core;
 
-import org.eclipse.jdt.core.dom.AST;
-
 import cl.pleiad.ghosts.dependencies.TypeRef;
 
 public class GConstructor extends GMethod {

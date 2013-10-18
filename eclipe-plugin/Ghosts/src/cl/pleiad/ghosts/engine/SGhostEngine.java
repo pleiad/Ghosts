@@ -28,12 +28,10 @@ import cl.pleiad.ghosts.view.GhostView;
 public class SGhostEngine {
 
 	private static SGhostEngine uniqueInstance;
-	private static Object lock;
 	
 	public static SGhostEngine get() {
 		if(uniqueInstance == null) {
 			uniqueInstance = new SGhostEngine();
-			lock = new Object(); 
 		}
 		return uniqueInstance;
 	}
@@ -92,11 +90,15 @@ public class SGhostEngine {
 	}
 
 	private boolean isHiddenByGhost(IMarker ghost,IMarker problem) throws CoreException {
-		int gStart = (Integer) ghost.getAttribute(IMarker.CHAR_START),
-			gEnd =	(Integer) ghost.getAttribute(IMarker.CHAR_END),
-			pStart = (Integer) problem.getAttribute(IMarker.CHAR_START),
+		int gStart = 0, gEnd = 0, pStart = 0, pEnd = 0;
+		if (ghost.getAttribute(IMarker.CHAR_START) != null)
+			gStart = (Integer) ghost.getAttribute(IMarker.CHAR_START);
+		if (ghost.getAttribute(IMarker.CHAR_END) != null)
+			gEnd =	(Integer) ghost.getAttribute(IMarker.CHAR_END);
+		if (problem.getAttribute(IMarker.CHAR_START) != null)
+			pStart = (Integer) problem.getAttribute(IMarker.CHAR_START);
+		if (problem.getAttribute(IMarker.CHAR_END) != null)
 			pEnd =	(Integer) problem.getAttribute(IMarker.CHAR_END);
-			
 		return gStart <= pStart && pEnd <= gEnd;
 	}
 	
@@ -117,6 +119,7 @@ public class SGhostEngine {
 		} catch (CoreException e) {	e.printStackTrace(); }
 	}
 
+	@SuppressWarnings("unused")
 	private boolean isCannotResolvedTypeOfGhost(IMarker problem) throws CoreException {
 		// ugly!!!!
 		String msg = (String) problem.getAttribute(IMarker.MESSAGE),

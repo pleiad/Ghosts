@@ -4,12 +4,10 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 
 import cl.pleiad.ghosts.core.GBehaviorType;
 import cl.pleiad.ghosts.core.GMember;
-import cl.pleiad.ghosts.core.Ghost;
 import cl.pleiad.ghosts.dependencies.ISourceRef;
 import cl.pleiad.ghosts.dependencies.MarkerSourceRef;
 
