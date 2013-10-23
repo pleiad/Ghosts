@@ -43,7 +43,7 @@ public class ResourceGhostVisitor implements IResourceDeltaVisitor {
 	    			SGhostEngine.get().removeProjectByName(projectName);
 	    			//System.out.println("removed: "+projectName);
 	        	}       		
-	            break;	            
+	            break;    
 	        case IResourceDelta.CHANGED :
 	        	if (delta.getResource().getType() == IResource.ROOT)
 	    			for (IResourceDelta projectDelta : delta.getAffectedChildren(IResource.PROJECT))
@@ -69,7 +69,6 @@ public class ResourceGhostVisitor implements IResourceDeltaVisitor {
 		}
 
 		protected IStatus run(IProgressMonitor monitor) {
-			
 			try {
 				if (project.isOpen()) {
 					if (project.isNatureEnabled(JavaCore.NATURE_ID)) {

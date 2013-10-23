@@ -62,18 +62,18 @@ public class SGhostEngine {
 						.setGhosts(visitor.getGhosts()));
 	}	
 	
-	public void loadGhostsFrom(IJavaProject project) {	
+	public void loadGhostsFrom(IJavaProject project) {
 		this.removeProject(project);
 		
 		ASTGhostVisitor visitor = new ASTGhostVisitor()
 								. setBlackList(GBlackList.from(project));
 	
-			try { 
-				for (IPackageFragment fPkg : project.getPackageFragments())
-					for (ICompilationUnit cUnit : fPkg.getCompilationUnits())
-						this.loadGhostsFrom(cUnit, visitor);
-			} catch (JavaModelException e) { e.printStackTrace(); }
-			
+		try { 
+			for (IPackageFragment fPkg : project.getPackageFragments())
+				for (ICompilationUnit cUnit : fPkg.getCompilationUnits())
+					this.loadGhostsFrom(cUnit, visitor);
+		} catch (JavaModelException e) { e.printStackTrace(); }
+		this.removeProject(project);
 		projects.add(new GhostSet()
 						.setProject(project)
 						.setGhosts(visitor.getGhosts()));
@@ -174,12 +174,16 @@ public class SGhostEngine {
 	}
    
 	public boolean removeProject(IJavaProject project) {
-		for (GhostSet set : projects)
-			if (set.getProject().getElementName()
-					.equals(project.getElementName())) {
+		String pname = project.getElementName();
+		if (projects.isEmpty())
+			return true;
+		for (GhostSet set : projects) {
+			String sname = set.getProject().getElementName();
+			if (sname.equals(pname)) {
 				projects.remove(set);
 				return true;
 			}
+		}
 		return false;
 	}
 
