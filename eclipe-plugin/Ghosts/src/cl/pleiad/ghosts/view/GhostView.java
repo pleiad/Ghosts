@@ -204,7 +204,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 
 		public ImageDescriptor getImageDescriptor(){
 			return ImageDescriptor.createFromImage(
-							GViewLavelProvider.getImageNamed("busted16.ico"));	
+							GViewLabelProvider.getImageNamed("busted16.ico"));	
 		}
 
 		
@@ -446,50 +446,61 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 			ImageIcon icon = new ImageIcon(getClass().getResource("/img/ghostac.jpg"));
 			String newName = (String) JOptionPane.showInputDialog(null, "Insert the new name", 
 							 "Ghost Rename", JOptionPane.QUESTION_MESSAGE, icon, null, null);
-			try{
-				IFile file = null;
-				AST ast = null;
-				ASTRewrite rewrite = null;
-				IPath path = null;
-				for (ISourceRef reference : selected.getDependencies()) {
-					if (file == null || !file.equals(reference.getFile())) {
-						file = reference.getFile();
-						path = file.getFullPath();
-						ast = reference.getNode().getAST();
-						rewrite = ASTRewrite.create(ast);
+			IFile file = null;
+			AST ast = null;
+			ASTRewrite rewrite = null;
+			IPath path = null;
+			for (ISourceRef reference : selected.getDependencies()) {
+				if (file == null) {
+					file = reference.getFile();
+					path = file.getFullPath();
+					ast = reference.getNode().getAST();
+					rewrite = ASTRewrite.create(ast);
+				}
+				else if(!file.equals(reference.getFile())) {
+					dumpToFile(ast, rewrite, file, path, reference);
+					file = reference.getFile();
+					path = file.getFullPath();
+					ast = reference.getNode().getAST();
+					rewrite = ASTRewrite.create(ast);
+				}
+				if (reference.getNode() != null) {
+					if (reference.getNode().getNodeType() == ASTNode.SIMPLE_TYPE) {
+						SimpleType newType = ast.newSimpleType(ast.newSimpleName(newName));
+						rewrite.replace((SimpleType) reference.getNode(), newType, null);
 					}
-					if (reference.getNode() != null) {
-						if (reference.getNode().getNodeType() == ASTNode.SIMPLE_TYPE) {
-							SimpleType newType = ast.newSimpleType(ast.newSimpleName(newName));
-							rewrite.replace((SimpleType) reference.getNode(), newType, null);
-						}
-						else if (reference.getNode().getNodeType() == ASTNode.SIMPLE_NAME) {
+					else if (reference.getNode().getNodeType() == ASTNode.SIMPLE_NAME) {
+						if (((SimpleName) reference.getNode()).getIdentifier().equals(selected.getName())) {
 							SimpleName nName = ast.newSimpleName(newName);
 							rewrite.replace((SimpleName) reference.getNode(), nName, null);
 						}
 					}
-					if (reference.equals(selected.getDependencies().
-							get(selected.getDependencies().size()-1))) {
-						ITextFileBufferManager bufferManager = FileBuffers
-								.getTextFileBufferManager(); 
-						bufferManager.connect(path, LocationKind.IFILE, null);
-						ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
-						IDocument document = textFileBuffer.getDocument();
-						rewrite.rewriteAST(document, null).apply(document);
-						textFileBuffer.commit(null, true);
-						bufferManager.disconnect(path, LocationKind.IFILE, null);
-						file = reference.getFile();
-						path = file.getFullPath();
-					}
 				}
-			}catch (Exception e) { e.printStackTrace(); return null;}
+				if (reference.equals(selected.getDependencies().
+						get(selected.getDependencies().size()-1))) {
+					dumpToFile(ast, rewrite, file, path, reference);
+				}
+			}
 			//notify file and references!!! simpler -> project
 			return project;
+		}
+		
+		public void dumpToFile(AST ast, ASTRewrite rewrite, IFile file, IPath path, ISourceRef reference) {
+			ITextFileBufferManager bufferManager = FileBuffers
+					.getTextFileBufferManager();
+			try{
+				bufferManager.connect(path, LocationKind.IFILE, null);
+				ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
+				IDocument document = textFileBuffer.getDocument();
+				rewrite.rewriteAST(document, null).apply(document);
+				textFileBuffer.commit(null, true);
+				bufferManager.disconnect(path, LocationKind.IFILE, null);
+			}catch (Exception e) { e.printStackTrace();}
 		}
 
 		public ImageDescriptor getImageDescriptor(){
 			return ImageDescriptor.createFromImage(
-							GViewLavelProvider.getImageNamed("ghost16_2.ico"));	
+							GViewLabelProvider.getImageNamed("ghost16_2.ico"));	
 		}
 
 		public void checkSelection(GTreeNode selected) {
@@ -558,7 +569,7 @@ public class GhostView extends ViewPart implements Observer,IDoubleClickListener
 	public void createPartControl(Composite parent) {
 		this.viewer=new TreeViewer(parent,SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		viewer.setContentProvider(contentProvider);
-		viewer.setLabelProvider(new GViewLavelProvider());
+		viewer.setLabelProvider(new GViewLabelProvider());
 		viewer.setInput(GTreeNode.from(SGhostEngine.get().getProjects()));
 		//viewer.addSelectionChangedListener((ISelectionChangedListener) this.ghostBuster);
 		this.ghostBuster.setEnabled(false);

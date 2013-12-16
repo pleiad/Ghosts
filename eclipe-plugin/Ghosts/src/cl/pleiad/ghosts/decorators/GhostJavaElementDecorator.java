@@ -10,14 +10,14 @@ import org.eclipse.jface.viewers.BaseLabelProvider;
 import org.eclipse.jface.viewers.IDecoration;
 import org.eclipse.jface.viewers.ILightweightLabelDecorator;
 import cl.pleiad.ghosts.markers.GhostMarker;
-import cl.pleiad.ghosts.view.GViewLavelProvider;
+import cl.pleiad.ghosts.view.GViewLabelProvider;
 
 
 
 
 public class GhostJavaElementDecorator extends BaseLabelProvider implements ILightweightLabelDecorator{
 
-	public final static ImageDescriptor ghostDecorator= ImageDescriptor.createFromImage(GViewLavelProvider.getImageNamed("ghost_dot.png"));
+	public final static ImageDescriptor ghostDecorator= ImageDescriptor.createFromImage(GViewLabelProvider.getImageNamed("ghost_dot.png"));
 	
 	@Override
 	public void decorate(Object element, IDecoration decoration) {

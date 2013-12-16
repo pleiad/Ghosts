@@ -20,6 +20,7 @@ import cl.pleiad.ghosts.core.GBehaviorType;
 import cl.pleiad.ghosts.core.GClass;
 import cl.pleiad.ghosts.core.GExtendedClass;
 import cl.pleiad.ghosts.core.GMember;
+import cl.pleiad.ghosts.core.GVariable;
 import cl.pleiad.ghosts.core.Ghost;
 import cl.pleiad.ghosts.dependencies.GhostSet;
 import cl.pleiad.ghosts.engine.SGhostEngine;
@@ -54,8 +55,14 @@ public class GhostCompletionProposalComputer implements IJavaCompletionProposalC
 							list = getProposals(project, declaration, jcontext.getInvocationOffset());
 					}
 					else {
-						list = getChainedProposals(jcontext.getCompilationUnit(), prefixes, 
-								declaration, project, jcontext.getInvocationOffset(), method, incomplete);
+						if (prefixes.get(0).equals("this")) {
+							declaration = getDeclaration(jcontext.getViewer(), 
+									jcontext.getInvocationOffset() - prefix.length() - 1, prefixes.get(1));
+							list = getProposals(project, declaration, jcontext.getInvocationOffset());
+						}
+						else
+							list = getChainedProposals(jcontext.getCompilationUnit(), prefixes, 
+								   declaration, project, jcontext.getInvocationOffset(), method, incomplete);
 					}
 					return list;
 				} catch (BadLocationException e) {
@@ -167,7 +174,8 @@ public class GhostCompletionProposalComputer implements IJavaCompletionProposalC
 				doc.getChar(offset) == ' ')) {
 			length++;
 		}
-		return doc.get(offset + 1, length).trim();
+		String[] fullDeclaration = doc.get(offset + 1, length).trim().split(" ");
+		return fullDeclaration[fullDeclaration.length - 1];
 	}
 	
 	private String getDeclaration(ITextViewer viewer, int offset, String prefix) throws BadLocationException {
@@ -221,15 +229,23 @@ public class GhostCompletionProposalComputer implements IJavaCompletionProposalC
 		Ghost ghost = null;
 		for (GhostSet proj : SGhostEngine.get().getProjects()) {
 			if (proj.getProject().getElementName().equals(project))
-				for (Ghost g : proj.getGhosts())
+				for (Ghost g : proj.getGhosts()) {
 					if (g.getName().equals(declaration))
 						ghost = g;
+					if (g.kind() == Ghost.FIELD
+						|| g.kind() == Ghost.METHOD) 
+						if (((GMember) g).getOwnerType().getName().equals(declaration))
+							list.add(new GhostCompletionProposal((GMember) g, offset, 0));
+				}
 		}
 		if (ghost != null) {
+			if (ghost.kind() == Ghost.INTERFACE
+				|| ghost.kind() == Ghost.CLASS) {
 			GClass gClass = ((GBehaviorType) ghost).asClass();
 			for (GMember member : gClass.getMembers()) {
 				if (!member.isDeclared)
 					list.add(new GhostCompletionProposal(member, offset, 0));
+			}
 			}
 		}
 		return list;

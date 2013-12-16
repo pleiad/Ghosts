@@ -12,9 +12,12 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
@@ -23,9 +26,11 @@ import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThrowStatement;
+import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 
 import cl.pleiad.ghosts.blacklist.GBlackList;
 import cl.pleiad.ghosts.core.GBehaviorType;
@@ -82,9 +87,14 @@ public class ASTGhostVisitor extends ASTVisitor {
 	}	
 
 	//simple name visitor
+	@SuppressWarnings("unchecked")
 	public void endVisit(SimpleName nameNode) {
 		super.endVisit(nameNode);
-		if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT) {
+		if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT ||
+			nameNode.getParent().getNodeType() == ASTNode.METHOD_INVOCATION ||
+			nameNode.getParent().getNodeType() == ASTNode.SUPER_METHOD_INVOCATION ||
+			nameNode.getParent().getNodeType() == ASTNode.CLASS_INSTANCE_CREATION ||
+			nameNode.getParent().getNodeType() == ASTNode.SUPER_CONSTRUCTOR_INVOCATION) {
 			String name = "";
 			if(nameNode.resolveTypeBinding() != null) {
 				name = nameNode.resolveTypeBinding().getName();
@@ -92,18 +102,55 @@ public class ASTGhostVisitor extends ASTVisitor {
 					return;
 			}
 			//creating field to compare
-			GField field = new GField(nameNode.getIdentifier(), false, false);
-			field.setReturnType(inferencer.inferTypeOf(nameNode, 0));
-			field.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
-			field.getDependencies().add(inferencer.getSourceRef(nameNode, nameNode, field));
-			//check ifExist
-			inferencer.checkErrors(field);
-			field = (GField) inferencer.checkAndUnify(field, Ghost.FIELD);
-			inferencer.checkAndMutate(field);
+			if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT) {
+				GField field = new GField(nameNode.getIdentifier(), false, false);
+				field.setReturnType(inferencer.inferTypeOf(nameNode, 0));
+				field.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
+				field.getDependencies().add(inferencer.getSourceRef(nameNode, nameNode, field));
+				//check ifExist
+				inferencer.checkErrors(field);
+				field = (GField) inferencer.checkAndUnify(field, Ghost.FIELD);
+				inferencer.checkAndMutate(field);				
+			}
+			else {
+				ASTNode p = nameNode.getParent();
+				List<Expression> args = null;
+				switch(p.getNodeType()) {
+					case ASTNode.METHOD_INVOCATION:
+						args = ((MethodInvocation) p).arguments();
+						break;
+					case ASTNode.SUPER_METHOD_INVOCATION:
+						args = ((SuperMethodInvocation) p).arguments();
+						break;
+					case ASTNode.CLASS_INSTANCE_CREATION:
+						args = ((ClassInstanceCreation) p).arguments();
+						break;
+					case ASTNode.SUPER_CONSTRUCTOR_INVOCATION:
+						args = ((SuperConstructorInvocation) p).arguments();	
+				}
+				if (args.contains(nameNode)) {
+					if (p.getParent().getNodeType() == ASTNode.TYPE_DECLARATION) {
+						GField field = new GField(nameNode.getIdentifier(), false, false);
+						field.setReturnType(inferencer.inferTypeOf(nameNode, 0));
+						field.setOwnerType(new TypeRef(inferencer.getCurrentFileName(),true));
+						field.getDependencies().add(inferencer.getSourceRef(nameNode, nameNode, field));
+						field = (GField) inferencer.checkAndUnify(field, Ghost.FIELD);
+						inferencer.checkAndMutate(field);
+					}
+					else {
+						GVariable gVar = new GVariable(nameNode.getIdentifier()).setReturnType(inferencer.inferTypeOf(nameNode, 0));
+						gVar.setContext(p.getParent());
+						gVar.getDependencies().add(inferencer.getSourceRef(nameNode, null, gVar));
+						inferencer.getGhosts().add(gVar);
+					}
+				}
+				else
+					return;
+			}
 		}
 	}	
 	
-	// all types that I want, are here, but not sure if I need only this!!
+	
 	public void endVisit(SimpleType typeNode) {
 		super.endVisit(typeNode);
 		addNewGhost(typeNode);
@@ -132,7 +179,9 @@ public class ASTGhostVisitor extends ASTVisitor {
 	public void endVisit(ThrowStatement throwNode) {
 		super.endVisit(throwNode);
 		Expression expr = throwNode.getExpression();
-		String typeName = expr.resolveTypeBinding().getName();
+		String typeName = "";
+		if (expr.resolveTypeBinding() != null)
+			typeName = expr.resolveTypeBinding().getName();
 		GBehaviorType excGhost = inferencer.getGhostType(typeName);
 		if (excGhost != null) {
 			GClass excGClass = (GClass) inferencer.mutate(excGhost);
@@ -240,7 +289,13 @@ public class ASTGhostVisitor extends ASTVisitor {
 	//Method invocation visitor
 	public void endVisit(MethodInvocation mthNode) {
 		super.endVisit(mthNode);
-		if(mthNode.resolveMethodBinding() != null) return;
+		if(mthNode.resolveMethodBinding() != null) {
+			IMethodBinding b = mthNode.resolveMethodBinding();
+			Ghost g = inferencer.getGhostType(b.getReturnType().getName());
+			if (g != null)
+				g.getDependencies().add(inferencer.getSourceRef(mthNode, mthNode.getName(), g));
+			return;
+		}
 		GMethod mth = new GMethod(mthNode.getName().getIdentifier(), false, false);
 		if(mthNode.getExpression() == null) {
 			mth.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
@@ -308,8 +363,13 @@ public class ASTGhostVisitor extends ASTVisitor {
 	public void endVisit(QualifiedName nameNode) {
 		super.endVisit(nameNode);
 		//java.lang.String a = lang.foo + java.lang;
-		if(nameNode.resolveBinding() != null) 
+		if(nameNode.resolveBinding() != null) {
+			TypeRef t = inferencer.inferTypeOf(nameNode, 0);
+			Ghost g = inferencer.getGhostType(t.getName());
+			if (g != null)
+				g.getDependencies().add(inferencer.getSourceRef(nameNode, null, g));
 			return;
+		}
 		//if nameNode.resolveBinding() == TypeBinding we are in a static member!
 		//creating field to compare
 		GField field = new GField(nameNode.getName().getIdentifier(), false, false);
@@ -325,6 +385,17 @@ public class ASTGhostVisitor extends ASTVisitor {
 		inferencer.checkAndMutate(field);
 	}
 	
+	//
+	/*public void endVisit(ParameterizedType typeNode) {
+		super.endVisit(typeNode);
+		System.out.print(typeNode.getType().toString()+" ");
+		System.out.println(typeNode.getType());
+		for(Type t : (List<Type>) typeNode.typeArguments()) {
+			System.out.print(t.toString()+" ");
+			System.out.println(t.resolveBinding().isRecovered());
+		}
+	}*/
+	
 	/**
 	 * Helper function that checks if a certain binding is
 	 * a Ghost and if it is creates the corresponding Ghost
@@ -337,7 +408,23 @@ public class ASTGhostVisitor extends ASTVisitor {
 				return;										
 			if(blackList.contains(type.getName())) 
 				return; // or QualifiedName
-			Ghost ghost = inferencer.getGhostConsidering(typeNode);
+			Ghost ghost = null;
+			if(type.isParameterizedType()) {
+				ParameterizedType parent = (ParameterizedType)typeNode.getParent();
+				for (Type t : (List<Type>) parent.typeArguments()) {
+					if (t.isSimpleType())
+						addNewGhost((SimpleType)t);
+					if (t.isParameterizedType())
+						addNewGhost((SimpleType)((ParameterizedType)t).getType());
+				}
+				String name = type.getQualifiedName();
+				if(blackList.contains(name.substring(0, name.indexOf('<')))) 
+					return; // or QualifiedName
+				ghost = inferencer.getGhostConsidering(typeNode);
+			}
+			else
+				ghost = inferencer.getGhostConsidering(typeNode);
+
 			ghost.getDependencies().add(inferencer.getSourceRef(typeNode, typeNode, ghost));
 			ASTNode parent = typeNode.getParent();
 			//extends ghost
@@ -359,11 +446,15 @@ public class ASTGhostVisitor extends ASTVisitor {
 						break;
 					case ASTNode.VARIABLE_DECLARATION_STATEMENT:
 						variables = ((VariableDeclarationStatement) parent).fragments();
-						break;						
+						break;					
 				}
 				for (VariableDeclarationFragment var : variables) {
 					String name = var.getName().getIdentifier();
-					TypeRef typeRef = new TypeRef(ghost.getName(),false).setRef(ghost);
+					TypeRef typeRef = null;
+					if (type.isParameterizedType())
+						typeRef = new TypeRef(type.getQualifiedName(),false).setRef(type);
+					else
+						typeRef = new TypeRef(ghost.getName(),false).setRef(ghost);
 					if (parent.getParent().getNodeType() == ASTNode.TYPE_DECLARATION) {
 						GField field = new GField(name, false, true);
 						field.setReturnType(typeRef);
@@ -387,7 +478,6 @@ public class ASTGhostVisitor extends ASTVisitor {
 
 				}
 			}
-
 		}
 	}
 	

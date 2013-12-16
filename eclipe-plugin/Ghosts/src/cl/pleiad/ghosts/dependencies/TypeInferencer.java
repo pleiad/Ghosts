@@ -56,7 +56,7 @@ public class TypeInferencer {
 		if (!ghosts.isEmpty()) {
 			for (Ghost ghost : ghosts)
 				for (ISourceRef ref : ghost.getDependencies())
-					if (ref.getLineNumber() == -1) {
+					if (ref == null || ref.getLineNumber() == -1) {
 						ghosts.remove(ghost);
 						break;
 					}
@@ -86,6 +86,8 @@ public class TypeInferencer {
 	public GBehaviorType getGhostConsidering(SimpleType typeNode) {
 		ITypeBinding type = typeNode.resolveBinding();
 		String qName = type.getQualifiedName();
+		if (qName.indexOf('<') > 0)
+			qName = qName.substring(0, qName.indexOf('<'));
 		GBehaviorType ghost =  this.getGhostType(qName);
 		if (ghost != null) 
 			return ghost;
@@ -309,7 +311,7 @@ public class TypeInferencer {
 								  ,((SimpleName)ctxNode).getIdentifier());
 					if (aux != null)
 						result = this.getMemberType(aux.getName(), name);
-					if (result == null) {
+					if (result == null && aux != null) {
 						result = this.getVariableType(((SimpleName)ctxNode).getIdentifier(), ctxNode);
 					}
 					break;
@@ -392,7 +394,8 @@ public class TypeInferencer {
 							return result;
 						pivot = pivot.getSuperclass();
 					}
-					if (otherSide.getRef().getClass().getName().equals("org.eclipse.jdt.core.dom.TypeBinding")) {
+					if (otherSide.getRef() != null &&
+						otherSide.getRef().getClass().getName().equals("org.eclipse.jdt.core.dom.TypeBinding")) {
 						pivot = (ITypeBinding) otherSide.getRef();
 						while (pivot != null) {
 							if(pivot.getSuperclass() != null
@@ -561,6 +564,23 @@ public class TypeInferencer {
 		TypeRef result = inferCurrentTypeOf((Expression) node, name);
 		//Unknown types
 		if (result.getName().equals("java.lang.Object")) {
+			ASTNode pnode = node.getParent();
+			if (pnode.getNodeType() == ASTNode.METHOD_INVOCATION) {
+				MethodInvocation m = (MethodInvocation) pnode;
+				ArrayList<String> names = new ArrayList<String>();
+				names.add("assertEquals");
+				names.add("assertNotSame"); 
+				names.add("assertSame");
+				if (names.contains(m.getName().toString())) {
+					Expression aux = null;
+					for (Expression e : (List<Expression>) m.arguments())
+						if(e != node) {
+							aux = e;
+						}
+					if (aux != null)
+						return inferTypeOf(aux,0);
+				}
+			}
 			TypeRef noName = new TypeRef("noName" + this.counter,false);
 			for (Ghost ghost : this.getGhosts()) 
 				if (ghost.getName().equals("noName" + this.counter)) {
@@ -572,8 +592,7 @@ public class TypeInferencer {
 			this.getGhosts().add(noClass);
 			return noName;
 		}
-		else
-			return result;
+		return result;
 	}
 	
 	/**
@@ -838,7 +857,7 @@ public class TypeInferencer {
 		ASTNode parentNode = node.getParent();
 		switch (parentNode.getNodeType()) {
 			// { <node> }
-			case ASTNode.BLOCK:
+			//case ASTNode.BLOCK:
 			// for each (.. <node> in .. <node>)	
 			case ASTNode.ENHANCED_FOR_STATEMENT:
 			// for(.. <node>; .. <node>; .. <node>)
@@ -901,10 +920,12 @@ public class TypeInferencer {
 			//TODO Change here
 			while(parent.getNodeType() != ASTNode.TYPE_DECLARATION) {
 				parent = this.getDeclaringMethodOrType(parent);
-				int line = this.cUnit.getLineNumber(parent.getStartPosition());
-				if(file != null &&
-					!GhostMarker.existGCxtMarkIn(line, file))
-					GhostMarker.createGCxtMark(file, line);
+				if (parent != null) {
+					int line = this.cUnit.getLineNumber(parent.getStartPosition());
+					if(file != null &&
+							!GhostMarker.existGCxtMarkIn(line, file))
+						GhostMarker.createGCxtMark(file, line);
+				}
 			}
 		} catch (CoreException e) {
 			e.printStackTrace();
