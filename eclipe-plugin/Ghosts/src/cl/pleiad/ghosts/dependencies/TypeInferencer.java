@@ -160,26 +160,40 @@ public class TypeInferencer {
 	 */
 	private GMember checkAndUnifyHelper(GMember ghost, GMember member, int kind) {
 		int similarity = ghost.similarTo(member);
+		String gname = ghost.getReturnType().getName();
+		String mname = member.getReturnType().getName();
 		if(similarity == Ghost.EQUALS) {
+			boolean able = false;
+			String max = null;
+			able = gname.equals("double") || gname.equals("float") || gname.equals("int");
+			able = able && (mname.equals("double") || mname.equals("float") || mname.equals("int"));
+			if (able) {
+				if (gname.equals("double") || mname.equals("double"))
+					max = "double";
+				else if (gname.equals("float") || mname.equals("float"))
+					max = "float";
+				else 
+					max = "int";
+				if (mname.equals(max))
+					ghost.getReturnType().setName(max);
+			}			
 			return (ghost).absorb(member);
 		}
 		if( Ghost.NAME_KIND <= similarity && similarity < Ghost.OVERLOADED) {
-			if(ghost.getReturnType().getName().equals("void"))
+			if(gname.equals("void")) {
 				if( ((GMethod)ghost).similarParamTypesTo((GMethod)member) ) {
 					ghost.setReturnType(member.getReturnType());
 					return ghost.absorb(member);
 				}
-			
-			if(member.getReturnType().getName().equals("void"))
+			}
+			else if(mname.equals("void")) {
 				if( ((GMethod)ghost).similarParamTypesTo((GMethod)member) )
 					return ghost.absorb(member);
-			
+			}
 			//System.out.println(ghost+" |similar| "+member);
 			GhostMarker.createIncompatibleDefMarkerFrom(ghost);
 			GhostMarker.createIncompatibleDefMarkerFrom(member);
-		
 		}
-		
 		return null;
 	}
 	
@@ -563,7 +577,9 @@ public class TypeInferencer {
 		}
 		TypeRef result = inferCurrentTypeOf((Expression) node, name);
 		//Unknown types
-		if (result.getName().equals("java.lang.Object")) {
+		if (result.getName().equals("java.lang.Object") ||
+			result.getName().equals("int") ||
+			result.getName().equals("float")) {
 			ASTNode pnode = node.getParent();
 			if (pnode.getNodeType() == ASTNode.METHOD_INVOCATION) {
 				MethodInvocation m = (MethodInvocation) pnode;
@@ -581,6 +597,9 @@ public class TypeInferencer {
 						return inferTypeOf(aux,0);
 				}
 			}
+			if (result.getName().equals("int") ||
+				result.getName().equals("float"))
+				return result;
 			TypeRef noName = new TypeRef("noName" + this.counter,false);
 			for (Ghost ghost : this.getGhosts()) 
 				if (ghost.getName().equals("noName" + this.counter)) {
@@ -906,6 +925,7 @@ public class TypeInferencer {
 	 */
 	public ISourceRef getSourceRef(ASTNode node, ASTNode simple, Ghost ghost) {
 		int startChar = node.getStartPosition();
+		int lenght = node.getLength();
 		IFile file = (IFile) this.cUnit.getJavaElement().getResource();
 		ISourceRef ref = null;
 		try {
@@ -913,18 +933,26 @@ public class TypeInferencer {
 					file, 
 					this.cUnit.getLineNumber(startChar), 
 					startChar, 
-					startChar + node.getLength(),
+					startChar + lenght,
 					ghost.toString(),
 					simple);
 			ASTNode parent = node;
 			//TODO Change here
-			while(parent.getNodeType() != ASTNode.TYPE_DECLARATION) {
-				parent = this.getDeclaringMethodOrType(parent);
-				if (parent != null) {
-					int line = this.cUnit.getLineNumber(parent.getStartPosition());
-					if(file != null &&
-							!GhostMarker.existGCxtMarkIn(line, file))
-						GhostMarker.createGCxtMark(file, line);
+			if (simple == null) {
+				int line = this.cUnit.getLineNumber(parent.getStartPosition());
+				if(file != null &&
+						!GhostMarker.existGCxtMarkIn(line, file))
+					GhostMarker.createGCxtMark(file, line);				
+			}
+			else {
+				while(parent != null && parent.getNodeType() != ASTNode.TYPE_DECLARATION) {
+					parent = this.getDeclaringMethodOrType(parent);
+					if (parent != null) {
+						int line = this.cUnit.getLineNumber(parent.getStartPosition());
+						if(file != null &&
+								!GhostMarker.existGCxtMarkIn(line, file))
+							GhostMarker.createGCxtMark(file, line);
+					}
 				}
 			}
 		} catch (CoreException e) {

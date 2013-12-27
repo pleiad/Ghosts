@@ -80,9 +80,18 @@ public class GMethod extends GMember {
 	public boolean similarParamTypesTo(GMethod other) {
 		if( this.getParamTypes().size() != other.getParamTypes().size()) return false;
 		
-		for (int i = 0; i < paramTypes.size(); i++)
-			if(! paramTypes.get(i).equals(other.getParamTypes().get(i))) return false;
-		
+		for (int i = 0; i < paramTypes.size(); i++) {
+			if(paramTypes.get(i).equals(other.getParamTypes().get(i))) {
+				if (paramTypes.get(i).getName().equals("int") ||
+					paramTypes.get(i).getName().equals("float"))
+					paramTypes.set(i, other.getParamTypes().get(i));
+				else if (other.paramTypes.get(i).getName().equals("int") ||
+						 other.paramTypes.get(i).getName().equals("float"))
+					other.paramTypes.set(i, getParamTypes().get(i));
+			}
+			else	
+				return false;
+		}
 		return true;
 	}
 

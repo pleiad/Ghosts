@@ -91,6 +91,8 @@ public class ASTGhostVisitor extends ASTVisitor {
 	public void endVisit(SimpleName nameNode) {
 		super.endVisit(nameNode);
 		if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT ||
+			nameNode.getParent().getNodeType() == ASTNode.VARIABLE_DECLARATION_FRAGMENT ||
+			nameNode.getParent().getNodeType() == ASTNode.RETURN_STATEMENT ||
 			nameNode.getParent().getNodeType() == ASTNode.METHOD_INVOCATION ||
 			nameNode.getParent().getNodeType() == ASTNode.SUPER_METHOD_INVOCATION ||
 			nameNode.getParent().getNodeType() == ASTNode.CLASS_INSTANCE_CREATION ||
@@ -102,15 +104,14 @@ public class ASTGhostVisitor extends ASTVisitor {
 					return;
 			}
 			//creating field to compare
-			if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT) {
-				GField field = new GField(nameNode.getIdentifier(), false, false);
-				field.setReturnType(inferencer.inferTypeOf(nameNode, 0));
-				field.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
-				field.getDependencies().add(inferencer.getSourceRef(nameNode, nameNode, field));
-				//check ifExist
-				inferencer.checkErrors(field);
-				field = (GField) inferencer.checkAndUnify(field, Ghost.FIELD);
-				inferencer.checkAndMutate(field);				
+			if (nameNode.getParent().getNodeType() == ASTNode.ASSIGNMENT ||
+				nameNode.getParent().getNodeType() == ASTNode.RETURN_STATEMENT) {
+				addLocalField(nameNode);				
+			}
+			else if (nameNode.getParent().getNodeType() == ASTNode.VARIABLE_DECLARATION_FRAGMENT) {
+				VariableDeclarationFragment frag = (VariableDeclarationFragment)nameNode.getParent();
+				if(frag.getInitializer() != null && frag.getInitializer().equals(nameNode))
+					addLocalField(nameNode);
 			}
 			else {
 				ASTNode p = nameNode.getParent();
@@ -148,6 +149,17 @@ public class ASTGhostVisitor extends ASTVisitor {
 					return;
 			}
 		}
+	}
+
+	private void addLocalField(SimpleName nameNode) {
+		GField field = new GField(nameNode.getIdentifier(), false, false);
+		field.setReturnType(inferencer.inferTypeOf(nameNode, 0));
+		field.setOwnerType(new TypeRef(inferencer.getCurrentFileName(), true));
+		field.getDependencies().add(inferencer.getSourceRef(nameNode, nameNode, field));
+		//check ifExist
+		inferencer.checkErrors(field);
+		field = (GField) inferencer.checkAndUnify(field, Ghost.FIELD);
+		inferencer.checkAndMutate(field);
 	}	
 	
 	
@@ -364,10 +376,12 @@ public class ASTGhostVisitor extends ASTVisitor {
 		super.endVisit(nameNode);
 		//java.lang.String a = lang.foo + java.lang;
 		if(nameNode.resolveBinding() != null) {
-			TypeRef t = inferencer.inferTypeOf(nameNode, 0);
-			Ghost g = inferencer.getGhostType(t.getName());
-			if (g != null)
-				g.getDependencies().add(inferencer.getSourceRef(nameNode, null, g));
+			if (nameNode.getParent().getNodeType() == ASTNode.METHOD_INVOCATION) {
+				TypeRef t = inferencer.inferTypeOf(nameNode, 0);
+				Ghost g = inferencer.getGhostType(t.getName());
+				if (g != null)
+					g.getDependencies().add(inferencer.getSourceRef(nameNode, null, g));
+			}
 			return;
 		}
 		//if nameNode.resolveBinding() == TypeBinding we are in a static member!

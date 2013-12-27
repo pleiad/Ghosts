@@ -54,7 +54,7 @@ public class TypeRef {
 		else if (ref.getName() == "Union")
 			return ((UnionTypeRef) ref).equals(this);
 		else
-			return name.equals(ref.getName()) &&
+			return compareType(name,ref.getName()) &&
 					concrete == ref.isConcrete();
 	}
 
@@ -72,5 +72,15 @@ public class TypeRef {
 			return isConcrete() && !((ITypeBinding) ref).isFromSource();
 		else
 			return isConcrete();// basic returns
+	}
+	
+	public boolean compareType(String n1, String n2) {
+		if (!n1.equals(n2)) {
+			boolean result = n1.equals("double") || n1.equals("float") || n1.equals("int");
+			result = result && (n2.equals("double") || n2.equals("float") || n2.equals("int"));
+			return result;
+		}
+		else
+			return true;
 	}
 }
